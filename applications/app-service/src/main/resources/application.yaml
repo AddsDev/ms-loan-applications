@@ -1,14 +1,45 @@
-##Spring Configuration
 server:
   port: 8080
 spring:
   application:
-    name: loan-applications
+    name: "loan-applications"
   devtools:
     add-properties: false
   h2:
     console:
       enabled: true
-      path: /h2
+      path: "/h2"
   profiles:
-    include:
+    include: null
+  # Settings for AWS Secrets Manager
+  #config:
+  #  import: "aws-secretsmanager:${SECRET_PATH}"
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/credi_ya_db
+    user: crediya_user
+    password: crediya_password.
+    schemas: ms_applications
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    connect-retries: 10
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8080"
+
+adapters:
+  r2dbc:
+    host: "localhost"
+    port: 5432
+    database: "credi_ya_db"
+    schema: "ms_applications"
+    username: "crediya_user"
+    password: "crediya_password."
