@@ -1,0 +1,278 @@
+openapi: 3.0.3
+info:
+  title: CrediYa - Solicitudes de Préstamo
+  version: 1.0.0
+  description: |
+    API para registrar solicitudes de préstamo (HU: "Registrar una solicitud de préstamo").
+    - Valida documento, email, monto, plazo y tipo de préstamo.
+    - La solicitud se registra con estado inicial **PENDING_REVIEW**.
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+tags:
+  - name: Loan Applications
+    description: Operaciones sobre solicitudes de préstamo
+
+paths:
+  /api/v1/solicitud:
+    post:
+      tags:
+        - Loan Applications
+      summary: Registrar solicitud de préstamo
+      operationId: applyForLoan
+      description: |
+        Crea una nueva solicitud de préstamo. 
+        Valida que el **loanType** exista en el catálogo y que **amount** y **termInMonths** cumplan las políticas por tipo.
+        > **Nota:** Los rangos exactos por tipo NO están documentados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyForLoanRequest'
+            examples:
+              consumer:
+                summary: Consumo
+                value:
+                  document: "1234567890"
+                  email: "ana.perez@example.com"
+                  amount: 1200000.00
+                  termInMonths: 24
+                  loanType: CONSUMER
+              business:
+                summary: Negocios
+                value:
+                  document: "9876543210"
+                  email: "carlos.lopez@example.com"
+                  amount: 15000000.00
+                  termInMonths: 48
+                  loanType: BUSINESS
+              mortgage:
+                summary: Vivienda (hipoteca)
+                value:
+                  document: "999999999999"
+                  email: "maria.gomez@example.com"
+                  amount: 150000000.00
+                  termInMonths: 240
+                  loanType: MORTGAGE
+      responses:
+        '201':
+          description: Solicitud registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplyForLoanResponse'
+              examples:
+                created-consumer:
+                  summary: Creación exitosa (Consumo)
+                  value:
+                    id: "9de72b7c-e704-4c78-b75c-84fc8325d5c9"
+                    document: "1234567890"
+                    email: "ana.perez@example.com"
+                    amount: 1200000.00
+                    termInMonths: 24
+                    type: CONSUMER
+                    status: PENDING_REVIEW
+                    createdAt: "2025-08-28T23:36:04.443752Z"
+        '400':
+          description: Error de validación de entrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                bad-request:
+                  value:
+                    code: INVALID_FORMAT
+                    message: "document debe tener entre 6 y 12 dígitos"
+                    timestamp: "2025-08-28T23:36:05.001Z"
+        '409':
+          description: |
+            Conflicto por duplicidad (Solicitud ya existe)
+            > **Nota**: Aun no disponible en la API.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                conflict:
+                  value:
+                    code: BUSINESS_RULE_VIOLATION
+                    message: "Application already exists"
+                    timestamp: "2025-08-28T23:36:06.120Z"
+        '422':
+          description: Regla de negocio incumplida (políticas o tipo no configurado)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                policy-violation-amount:
+                  summary: Monto fuera de rango para CONSUMER
+                  value:
+                    code: BUSINESS_RULE_VIOLATION
+                    message: "Amount must be between 500000.00 and 30000000.00 for loan type CONSUMER."
+                    timestamp: "2025-08-28T23:36:06.320Z"
+                policy-violation-term:
+                  summary: Plazo fuera de rango para MORTGAGE
+                  value:
+                    code: BUSINESS_RULE_VIOLATION
+                    message: "Term must be between 60 and 360 months for loan type MORTGAGE."
+                    timestamp: "2025-08-28T23:36:06.330Z"
+                loan-type-missing:
+                  summary: Tipo no configurado en catálogo
+                  value:
+                    code: BUSINESS_RULE_VIOLATION
+                    message: "Loan type is not configured in catalog."
+                    timestamp: "2025-08-28T23:36:06.340Z"
+        '500':
+          description: Error interno no controlado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                internal:
+                  value:
+                    code: UNKNOWN
+                    message: "Unexpected error"
+                    timestamp: "2025-08-28T23:36:06.520Z"
+
+components:
+  schemas:
+    ApplyForLoanRequest:
+      type: object
+      additionalProperties: false
+      required: [document, email, amount, termInMonths, loanType]
+      properties:
+        document:
+          type: string
+          description: Documento de identidad (6 a 12 dígitos)
+          pattern: '^\d{6,12}$'
+          example: "1234567890"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico del solicitante
+          example: "ana.perez@example.com"
+        amount:
+          type: number
+          format: double
+          description: |
+            Monto solicitado con hasta 2 decimales (se serializa sin notación científica).
+            **Rangos por tipo**:
+            - CONSUMER: 500,000.00 – 30,000,000.00
+            - BUSINESS: 5,000,000.00 – 90,000,000.00
+            - MORTGAGE: 30,000,000.00 – 900,000,000.00
+          minimum: 0.01
+          example: 1500000.00
+          x-decimal-places: 2
+        termInMonths:
+          type: integer
+          format: int32
+          description: |
+            Plazo en meses.
+            **Rangos por tipo**:
+            - CONSUMER: 6 – 84
+            - BUSINESS: 12 – 120
+            - MORTGAGE: 60 – 360
+          minimum: 1
+          maximum: 360
+          example: 24
+        loanType:
+          $ref: '#/components/schemas/LoanType'
+
+    ApplyForLoanResponse:
+      type: object
+      additionalProperties: false
+      required: [id, document, email, amount, termInMonths, type, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "9de72b7c-e704-4c78-b75c-84fc8325d5c9"
+        document:
+          type: string
+          pattern: '^\d{6,12}$'
+          example: "1234567890"
+        email:
+          type: string
+          format: email
+          example: "ana.perez@example.com"
+        amount:
+          type: number
+          format: double
+          description: Monto con 2 decimales (sin notación científica).
+          example: 1200000.00
+          x-decimal-places: 2
+        termInMonths:
+          type: integer
+          minimum: 1
+          maximum: 360
+          example: 24
+        type:
+          $ref: '#/components/schemas/LoanType'
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-08-28T23:36:04.443752Z"
+
+    LoanType:
+      type: string
+      description: Tipo de préstamo (con nombre comercial, rangos y tasa referencial)
+      enum: [CONSUMER, BUSINESS, MORTGAGE]
+      example: CONSUMER
+      x-loanPolicies:
+        CONSUMER:
+          displayName: "Consumo"
+          amountMin: 500000.00
+          amountMax: 30000000.00
+          termMin: 6
+          termMax: 84
+          interestRateAnnualPercent: 28.50
+        BUSINESS:
+          displayName: "Negocios"
+          amountMin: 5000000.00
+          amountMax: 90000000.00
+          termMin: 12
+          termMax: 120
+          interestRateAnnualPercent: 18.95
+        MORTGAGE:
+          displayName: "Vivienda"
+          amountMin: 30000000.00
+          amountMax: 900000000.00
+          termMin: 60
+          termMax: 360
+          interestRateAnnualPercent: 12.20
+
+    ApplicationStatus:
+      type: string
+      description: Estado de la solicitud
+      enum: [PENDING_REVIEW, APPROVED, REJECTED]
+      example: PENDING_REVIEW
+
+    ApiError:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorCode:
+      type: string
+      enum:
+        - REQUIRED_FIELD
+        - INVALID_FORMAT
+        - INVALID_LENGTH
+        - PERSISTENCE_ERROR
+        - BUSINESS_RULE_VIOLATION
+        - UNKNOWN

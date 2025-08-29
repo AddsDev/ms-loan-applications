@@ -6,6 +6,9 @@ buildscript {
 		jacocoVersion = '0.8.13'
 		pitestVersion = '1.19.0-rc.1'
         lombokVersion = '1.18.38'
+        slf4jVersion = '2.0.13'
+        mapStructVersion = '1.6.3'
+        secretsVersion = '3.4.0'
 	}
 }
 
