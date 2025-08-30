@@ -3,6 +3,7 @@ package com.crediya.loan.api.handler;
 import com.crediya.loan.model.common.exceptions.DomainException;
 import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.web.reactive.error.DefaultErrorAttributes;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -39,13 +40,13 @@ public class GlobalErrorAttributes extends DefaultErrorAttributes {
 
     static {
         // Manejo de errores personalizados y de dominio
-        // EXCEPTION_HANDLERS.put(DuplicateEmailException.class, ex -> Tuples.of(HttpStatus.CONFLICT, ((DomainException) ex).getCode().name()));
         EXCEPTION_HANDLERS.put(ValidationException.class, ex -> Tuples.of(HttpStatus.UNPROCESSABLE_ENTITY, ((DomainException) ex).getCode().name()));
         EXCEPTION_HANDLERS.put(DomainException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, ((DomainException) ex).getCode().name()));
 
         // Manejo de errores estándar de Spring
         EXCEPTION_HANDLERS.put(WebExchangeBindException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, CODE_BAD_REQUEST));
         EXCEPTION_HANDLERS.put(IllegalArgumentException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, CODE_INVALID_FORMAT));
+        EXCEPTION_HANDLERS.put(ConstraintViolationException.class, ex -> Tuples.of(HttpStatus.UNPROCESSABLE_ENTITY, CODE_INVALID_FORMAT));
         EXCEPTION_HANDLERS.put(ServerWebInputException.class, ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof DecodingException de && de.getCause() instanceof InvalidFormatException) {

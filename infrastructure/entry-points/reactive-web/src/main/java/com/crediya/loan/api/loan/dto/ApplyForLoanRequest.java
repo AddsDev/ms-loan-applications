@@ -13,7 +13,6 @@ public record ApplyForLoanRequest(
         @Email(message = "The email format is not valid")
         String email,
         @NotNull(message = "The field amount cannot be zero")
-        //@DecimalMin(value = "0.0", message = "The base salary must be greater than or equal to 0")
         @Digits(integer = 14, fraction = 2, message = "amount debe tener máximo 14 enteros y 2 decimales")
         @DecimalMin(value = "0.01", message = "amount debe ser mayor a 0")
         BigDecimal amount,
