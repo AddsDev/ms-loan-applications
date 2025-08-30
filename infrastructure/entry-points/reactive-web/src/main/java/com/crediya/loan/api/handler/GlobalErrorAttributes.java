@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -35,6 +36,7 @@ public class GlobalErrorAttributes extends DefaultErrorAttributes {
     private static final String CODE_INTERNAL_ERROR = "INTERNAL_SERVER_ERROR";
     private static final String CODE_INVALID_FORMAT = "INVALID_FORMAT";
     private static final String CODE_BAD_REQUEST = "BAD_REQUEST";
+    private static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
 
     private static final Map<Class<? extends Throwable>, Function<Throwable, Tuple2<HttpStatus, String>>> EXCEPTION_HANDLERS = new LinkedHashMap<>();
 
@@ -47,6 +49,7 @@ public class GlobalErrorAttributes extends DefaultErrorAttributes {
         EXCEPTION_HANDLERS.put(WebExchangeBindException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, CODE_BAD_REQUEST));
         EXCEPTION_HANDLERS.put(IllegalArgumentException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, CODE_INVALID_FORMAT));
         EXCEPTION_HANDLERS.put(ConstraintViolationException.class, ex -> Tuples.of(HttpStatus.UNPROCESSABLE_ENTITY, CODE_INVALID_FORMAT));
+        EXCEPTION_HANDLERS.put(NoResourceFoundException.class, ex -> Tuples.of(HttpStatus.METHOD_NOT_ALLOWED, METHOD_NOT_ALLOWED));
         EXCEPTION_HANDLERS.put(ServerWebInputException.class, ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof DecodingException de && de.getCause() instanceof InvalidFormatException) {
@@ -95,6 +98,8 @@ public class GlobalErrorAttributes extends DefaultErrorAttributes {
                 return String.format("The value '%s' for field '%s' is not a valid format for data type '%s'.", invalidValue, fieldName, targetType);
             }
             return "Format error in the request body.";
+        } else if (ex instanceof NoResourceFoundException) {
+            return "The requested resource was not found.";
         } else {
             return ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred on the server.";
         }
