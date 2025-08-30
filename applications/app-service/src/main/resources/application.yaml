@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 spring:
   application:
     name: "loan-applications"
@@ -33,7 +33,7 @@ management:
       probes:
         enabled: true
 cors:
-  allowed-origins: "http://localhost:4200,http://localhost:8080"
+  allowed-origins: "http://localhost:4200,http://localhost:8081"
 
 adapters:
   r2dbc:
@@ -43,3 +43,8 @@ adapters:
     schema: "ms_applications"
     username: "crediya_user"
     password: "crediya_password."
+  email-validator:
+    base_url: "http://localhost:8080"
+    connect_timeout: 1000
+    read_timeout: 10000
+    default_retry_attempts: 1
