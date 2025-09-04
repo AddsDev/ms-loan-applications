@@ -1,17 +1,21 @@
 package com.crediya.loan.config;
 
+import com.crediya.loan.model.common.gateways.TraceLoggerPort;
+import com.crediya.loan.model.common.gateways.TransactionPort;
+import com.crediya.loan.model.loan.gateways.LoanPolicyRepository;
+import com.crediya.loan.model.loan.gateways.LoanRepository;
+import com.crediya.loan.usecase.applyforloan.ApplyForLoanUseCase;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UseCasesConfigTest {
 
     @Test
     void testUseCaseBeansExist() {
-        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(TestConfig.class)) {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(this.getClass())) {
             String[] beanNames = context.getBeanDefinitionNames();
 
             boolean useCaseBeanFound = false;
@@ -26,19 +30,27 @@ class UseCasesConfigTest {
         }
     }
 
-    @Configuration
-    @Import(UseCasesConfig.class)
-    static class TestConfig {
-
-        @Bean
-        public MyUseCase myUseCase() {
-            return new MyUseCase();
-        }
+    @Bean
+    public ApplyForLoanUseCase applyForLoanUseCase() {
+        return Mockito.mock(ApplyForLoanUseCase.class);
+    }
+    @Bean
+    public LoanPolicyRepository loanPolicyRepository() {
+        return Mockito.mock(LoanPolicyRepository.class);
     }
 
-    static class MyUseCase {
-        public String execute() {
-            return "MyUseCase Test";
-        }
+    @Bean
+    public LoanRepository loanRepository() {
+        return Mockito.mock(LoanRepository.class);
+    }
+
+    @Bean
+    public TransactionPort transactionPort() {
+        return Mockito.mock(TransactionPort.class);
+    }
+
+    @Bean
+    public TraceLoggerPort traceLoggerPort() {
+        return Mockito.mock(TraceLoggerPort.class);
     }
 }

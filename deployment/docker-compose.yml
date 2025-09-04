@@ -1,0 +1,16 @@
+services:
+  postgres-db-app:
+    image: postgres:17-alpine
+    container_name: crediya-postgres-app
+    environment:
+      POSTGRES_USER: crediya_app
+      POSTGRES_PASSWORD: crediya_password.
+      POSTGRES_DB: credi_ya_db_app
+    ports:
+      - "5433:5432"
+    volumes:
+      - crediya_data_app:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  crediya_data_app:
