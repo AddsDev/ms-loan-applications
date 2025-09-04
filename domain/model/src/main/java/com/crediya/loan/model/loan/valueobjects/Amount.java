@@ -2,6 +2,7 @@ package com.crediya.loan.model.loan.valueobjects;
 
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.exceptions.ValidationException;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 
@@ -17,5 +18,11 @@ public record Amount(BigDecimal value) {
             throw new ValidationException(ErrorCode.INVALID_FORMAT, "amount must be > 0");
         }
         value = value.stripTrailingZeros();
+    }
+
+    @Override
+    @NonNull
+    public String toString() {
+        return value.toPlainString();
     }
 }
