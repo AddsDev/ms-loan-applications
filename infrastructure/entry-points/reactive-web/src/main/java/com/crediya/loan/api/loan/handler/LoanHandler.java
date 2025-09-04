@@ -5,8 +5,8 @@ import com.crediya.loan.api.loan.dto.ApplyForLoanRequest;
 import com.crediya.loan.api.loan.mapper.LoanMapper;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
 import com.crediya.loan.usecase.applyforloan.ApplyForLoanUseCase;
-import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -27,6 +27,7 @@ public class LoanHandler {
         this.validator = validator;
     }
 
+    @PreAuthorize( "hasAnyAuthority('SCOPE_loan:write','ROLE_CLIENTE')")
     public Mono<ServerResponse> registerLoan(ServerRequest serverRequest) {
         return serverRequest.bodyToMono(ApplyForLoanRequest.class)
                 .switchIfEmpty(Mono.error(() -> new RuntimeException("Request body is empty")))

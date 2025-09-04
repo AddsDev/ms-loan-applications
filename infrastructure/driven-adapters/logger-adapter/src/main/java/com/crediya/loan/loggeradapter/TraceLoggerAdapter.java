@@ -22,11 +22,6 @@ public class TraceLoggerAdapter implements TraceLoggerPort {
         this.logger = LoggerFactory.getLogger(TraceLoggerAdapter.class);
     }
 
-    /*public TraceLoggerAdapter(Class<?> clazz) {
-        this.logger = LoggerFactory.getLogger(clazz);
-    }*/
-
-
     @Override
     public void trace(String message) {
         this.logger.trace(message);

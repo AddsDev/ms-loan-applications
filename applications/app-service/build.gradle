@@ -1,8 +1,8 @@
 apply plugin: 'org.springframework.boot'
 
 dependencies {
+	implementation project(':security')
 	implementation project(':rest-client')
-	implementation project(':rest-email-validator')
 	implementation project(':r2dbc-postgresql')
 	implementation project(':reactive-web')
 	implementation project(':logger-adapter')

@@ -1,6 +1,7 @@
 package com.crediya.loan.api.handler;
 
 import com.crediya.loan.model.common.exceptions.DomainException;
+import com.crediya.loan.model.common.exceptions.ExternalServiceException;
 import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.validation.ConstraintViolationException;
@@ -44,6 +45,7 @@ public class GlobalErrorAttributes extends DefaultErrorAttributes {
         // Manejo de errores personalizados y de dominio
         EXCEPTION_HANDLERS.put(ValidationException.class, ex -> Tuples.of(HttpStatus.UNPROCESSABLE_ENTITY, ((DomainException) ex).getCode().name()));
         EXCEPTION_HANDLERS.put(DomainException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, ((DomainException) ex).getCode().name()));
+        EXCEPTION_HANDLERS.put(ExternalServiceException.class, ex -> Tuples.of(HttpStatus.FORBIDDEN, ((DomainException) ex).getCode().name()));
 
         // Manejo de errores estándar de Spring
         EXCEPTION_HANDLERS.put(WebExchangeBindException.class, ex -> Tuples.of(HttpStatus.BAD_REQUEST, CODE_BAD_REQUEST));
