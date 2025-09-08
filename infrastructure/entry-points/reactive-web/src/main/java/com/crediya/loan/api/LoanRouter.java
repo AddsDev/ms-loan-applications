@@ -15,6 +15,7 @@ public class LoanRouter {
         return RouterFunctions.route()
                 .path("/api/v1", builder ->
                         builder.POST("/solicitud", handler::registerLoan)
+                        .GET("/solicitudes", handler::listForAdvisor)
                 )
                 .build();
     }
