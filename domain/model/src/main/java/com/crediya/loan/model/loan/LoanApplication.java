@@ -37,7 +37,7 @@ public record LoanApplication(
                 new Amount(cmd.amount()),
                 new TermInMonths(cmd.termInMonths()),
                 cmd.type(),
-                ApplicationStatus.PENDING_REVIEW,
+                ApplicationStatus.PENDING,
                 OffsetDateTime.now(ZoneOffset.UTC)
         );
 
