@@ -36,7 +36,7 @@ class OwnershipValidatorServiceTest {
     }
 
     private static OwnableCommand ownableCommand(String email) {
-        return (OwnableCommand) () -> email;
+        return () -> email;
     }
 
     @Test

@@ -17,7 +17,7 @@ class LoanApplicationTest {
         LoanApplication la = LoanApplication.register(cmd, policies);
 
         assertThat(la.id()).isNotBlank();
-        assertThat(la.status()).isEqualTo(ApplicationStatus.PENDING_REVIEW);
+        assertThat(la.status()).isEqualTo(ApplicationStatus.PENDING);
         assertThat(la.loanType()).isEqualTo(LoanType.CONSUMER);
         assertThat(la.createdAt()).isNotNull();
     }
