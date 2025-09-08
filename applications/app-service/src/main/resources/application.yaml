@@ -40,9 +40,6 @@ management:
         enabled: true
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8081"
-jwt:
-  secret: ${JWT_SECRET:""}
-  expiration: ${JWT_EXPIRATION:360000}
 
 adapters:
   r2dbc:

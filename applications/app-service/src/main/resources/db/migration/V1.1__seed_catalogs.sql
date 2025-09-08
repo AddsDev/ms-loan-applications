@@ -1,8 +1,8 @@
 SET search_path TO ms_applications;
 
 INSERT INTO ms_applications.statuses (status_id, name, description)
-VALUES (gen_random_uuid(), 'PENDING_REVIEW', 'Registered, in validation queue'),
-       (gen_random_uuid(), 'IN_REVIEW', 'Under manual review'),
+VALUES (gen_random_uuid(), 'PENDING', 'Pending review by advisor'),
+       (gen_random_uuid(), 'MANUAL_REVIEW', 'Manual review required'),
        (gen_random_uuid(), 'APPROVED', 'Approved'),
        (gen_random_uuid(), 'REJECTED', 'Rejected');
 

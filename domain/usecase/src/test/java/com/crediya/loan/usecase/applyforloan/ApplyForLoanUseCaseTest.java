@@ -103,7 +103,7 @@ class ApplyForLoanUseCaseTest {
         StepVerifier.create(result)
                 .assertNext(app -> {
                     assertThat(app.id()).isNotBlank();
-                    assertThat(app.status()).isEqualTo(ApplicationStatus.PENDING_REVIEW);
+                    assertThat(app.status()).isEqualTo(ApplicationStatus.PENDING);
                     assertThat(app.loanType()).isEqualTo(LoanType.CONSUMER);
                     assertThat(app.email()).isEqualTo(cmd.email());
                 })

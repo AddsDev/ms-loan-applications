@@ -2,6 +2,9 @@ package com.crediya.loan.api.loan.mapper;
 
 import com.crediya.loan.api.loan.dto.ApplyForLoanRequest;
 import com.crediya.loan.api.loan.dto.ApplyForLoanResponse;
+import com.crediya.loan.api.loan.dto.ListApplicationsResponse;
+import com.crediya.loan.model.common.pagers.PageResult;
+import com.crediya.loan.model.loan.ApplicationSummary;
 import com.crediya.loan.model.loan.LoanApplication;
 import com.crediya.loan.model.loan.parameterobjects.ApplyForLoanCommand;
 import com.crediya.loan.model.loan.valueobjects.Amount;
@@ -13,6 +16,8 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 import java.math.BigDecimal;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
@@ -27,7 +32,6 @@ public interface LoanMapper {
     @Mapping(target = "loanType", source = "type")
     @Mapping(target = "email", source = "command.email", qualifiedByName = "mapEmail")
     @Mapping(target = "document", source = "command.document", qualifiedByName = "mapDocument")
-        //@Mapping(target = "email", source = "email", qualifiedByName = "mapEmail")
     ApplyForLoanRequest toRequest(ApplyForLoanCommand command);
 
     @Mapping(target = "document", source = "identityDocument", qualifiedByName = "mapDocument")
@@ -75,5 +79,23 @@ public interface LoanMapper {
     @Named("toTerm")
     default TermInMonths toTerm(Integer raw) {
         return raw == null ? null : new TermInMonths(raw);
+    }
+
+    default ListApplicationsResponse toResponse(PageResult<ApplicationSummary> page) {
+        var items = page.data().stream().map(s -> new ListApplicationsResponse.Item(
+                s.id(),
+                s.email(),
+                s.document(),
+                s.applicantName(),
+                s.loanType(),
+                s.amount(),
+                s.interestRateAnnual(),
+                s.termInMonths(),
+                s.status(),
+                s.baseSalary(),
+                s.requestMonthly(),
+                s.createdAt().withOffsetSameInstant(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        )).toList();
+        return new ListApplicationsResponse(items, page.page(), page.size(), page.totalItems());
     }
 }

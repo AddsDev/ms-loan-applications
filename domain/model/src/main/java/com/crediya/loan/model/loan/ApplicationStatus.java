@@ -1,8 +1,8 @@
 package com.crediya.loan.model.loan;
 
 public enum ApplicationStatus {
-    PENDING_REVIEW,
-    IN_REVIEW,
+    PENDING,
     APPROVED,
-    REJECTED
+    REJECTED,
+    MANUAL_REVIEW,
 }

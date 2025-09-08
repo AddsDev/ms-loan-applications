@@ -13,6 +13,8 @@ import com.crediya.loan.model.loan.parameterobjects.ApplyForLoanCommand;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
+import java.util.Set;
+
 @RequiredArgsConstructor
 public class ApplyForLoanUseCase {
     private final LoanRepository loanRepository;
@@ -23,7 +25,7 @@ public class ApplyForLoanUseCase {
     private final OwnershipValidatorService ownershipValidator;
 
     public Mono<LoanApplication> execute(ApplyForLoanCommand command) {
-        return ownershipValidator.assertOwner(command, null)
+        return ownershipValidator.assertOwner(command, Set.of("ROLE_ADMINISTRADOR"))
                 .then(Mono.defer(() ->
                         policyRepository.loadAllPolicies()
                                 .switchIfEmpty(Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Loan policies not configured")))
