@@ -38,8 +38,8 @@ public class EmailValidationRestClient implements EmailValidationPort {
                 .timeout(Duration.ofMillis(properties.readTimeout()))
                 .retryWhen(Retry.backoff(properties.defaultRetryAttempts(), Duration.ofMillis(200))
                         .filter(this::isTransient))
-                .map(res -> new EmailValidationResult(new Email(res.email()), res.isRegistered()))
-                .onErrorResume(e -> Mono.error(new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_ERROR, "The provided email does not match the authenticated user's identity.")));
+                .map(res -> new EmailValidationResult(new Email(res.email()), res.name(), res.baseSalary(), res.isRegistered()))
+                .onErrorResume(e -> Mono.error(new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_ERROR, "The provided email does not match the user's emails.")));
     }
 
 

@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Version;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -32,6 +31,12 @@ public class ApplicationEntity {
 
     @Column("email")
     private String email;
+
+    @Column("name")
+    private String name;
+
+    @Column("base_salary")
+    private BigDecimal baseSalary;
 
     @Column("identity_document")
     private String identityDocument;

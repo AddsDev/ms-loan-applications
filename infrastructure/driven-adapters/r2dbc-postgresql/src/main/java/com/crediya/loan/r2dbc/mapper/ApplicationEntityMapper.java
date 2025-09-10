@@ -37,10 +37,12 @@ public class ApplicationEntityMapper {
         return new LoanApplication(
                 entity.getApplicationId().toString(),
                 new Email(entity.getEmail()),
+                entity.getName(),
                 new Document(entity.getIdentityDocument()),
                 new Amount(entity.getAmount()),
                 new TermInMonths(entity.getTerm()),
                 type,
+                entity.getBaseSalary(),
                 status,
                 entity.getCreatedAt()
         );
@@ -57,6 +59,8 @@ public class ApplicationEntityMapper {
                 .amount(domain.amount().value().setScale(2, RoundingMode.HALF_UP))
                 .term(domain.term().value())
                 .email(domain.email().value())
+                .name(domain.name())
+                .baseSalary(domain.baseSalary())
                 .identityDocument(domain.identityDocument().toString())
                 .statusId(statusId)
                 .loanTypeId(loanTypeId)

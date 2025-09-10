@@ -9,8 +9,8 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - crediya_data_app:/var/lib/postgresql/data
+      - crediya_data_app_auth:/var/lib/postgresql/data
     restart: always
 
 volumes:
-  crediya_data_app:
+  crediya_data_app_auth:

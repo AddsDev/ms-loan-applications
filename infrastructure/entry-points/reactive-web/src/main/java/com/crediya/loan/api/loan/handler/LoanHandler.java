@@ -56,6 +56,7 @@ public class LoanHandler {
                 .map(s -> Arrays.stream(s.split(",")).map(String::trim)
                         .filter(v -> !v.isBlank())
                         .map(String::toUpperCase)
+                        .filter( i -> Arrays.stream(ApplicationStatus.values()).anyMatch(v -> v.name().equals(i)) )
                         .map(ApplicationStatus::valueOf)
                         .toList())
                 .orElse(List.of(ApplicationStatus.PENDING, ApplicationStatus.REJECTED, ApplicationStatus.MANUAL_REVIEW));

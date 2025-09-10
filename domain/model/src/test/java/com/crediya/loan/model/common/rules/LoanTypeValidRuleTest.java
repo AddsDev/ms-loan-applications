@@ -15,8 +15,17 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 class LoanTypeValidRuleTest {
     private LoanApplication app(LoanType type){
-        return new LoanApplication("id", new Email("u@x.com"), new Document("123456"),
-                new Amount(new BigDecimal("1000.00")), new TermInMonths(12), type, null, OffsetDateTime.now());
+        return new LoanApplication(
+                "id", new Email("u@x.com"),
+                "Jhon Doe",
+                new Document("123456"),
+                new Amount(new BigDecimal("1000.00")),
+                new TermInMonths(12),
+                type,
+                new BigDecimal("5100000.00"),
+                null,
+                OffsetDateTime.now()
+        );
     }
 
     @Test

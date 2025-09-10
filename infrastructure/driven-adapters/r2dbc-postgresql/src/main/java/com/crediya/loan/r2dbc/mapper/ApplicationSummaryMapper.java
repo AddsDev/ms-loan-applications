@@ -5,6 +5,7 @@ import com.crediya.loan.model.loan.policy.Finance;
 import io.r2dbc.spi.Row;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -20,13 +21,13 @@ public class ApplicationSummaryMapper {
                 Objects.requireNonNull(row.get("id", UUID.class)).toString(),
                 row.get("email", String.class),
                 row.get("document", String.class),
-                null, // Get from validation Services - name
+                row.get("applicantName", String.class), // Get from validation Services - name
                 row.get("loan_type", String.class),
                 row.get("status", String.class),
                 amount,
                 term,
                 rate,
-                null, // Get from validation Services - baseSalary
+                row.get("baseSalary", BigDecimal.class), // Get from validation Services - baseSalary
                 Finance.calculateMonthlyInterestRate(amount, term, rate),
                 row.get("createdAt", OffsetDateTime.class)
         );

@@ -38,7 +38,20 @@ public class ApplyForLoanUseCase {
                                 })
                                 .flatMap(loan ->
                                         emailValidationPort.checkEmail(loan.email()).flatMap(response -> response.isRegistered()
-                                                        ? Mono.just(loan)
+                                                        ? Mono.just(
+                                                        new LoanApplication(
+                                                                loan.id(),
+                                                                loan.email(),
+                                                                response.name(),
+                                                                loan.identityDocument(),
+                                                                loan.amount(),
+                                                                loan.term(),
+                                                                loan.loanType(),
+                                                                response.baseSalary(),
+                                                                loan.status(),
+                                                                loan.createdAt()
+                                                        )
+                                                )
                                                         : Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "The email address is not registered in the system")))
                                                 .doOnSubscribe(s -> logger.trace("Email validation started"))
                                                 .doOnSuccess(t -> logger.trace("Email validation result: {}", t))
