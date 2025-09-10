@@ -54,7 +54,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
     @Override
     public Flux<ApplicationSummary> findForAdvisor(ListApplicationsQueryCommand cmd, SortSpec sort) {
         var sql = new StringBuilder("""
-                SELECT a.application_id as id, a.email as email, a.identity_document as document,
+                SELECT a.application_id as id, a.email as email, a.identity_document as document, a.name as applicantName, a.base_salary as baseSalary,
                     lt.code as loan_type,
                     a.amount as amount, a.term as term,
                     lt.interest_rate as termInMonths,
@@ -82,7 +82,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
         return db.sql(sql.toString())
                 .bindValues(params)
                 .map((row, meta) -> summaryMapper.toSummary(row))
-                .all();
+                .all().onErrorMap( e -> new DomainException(ErrorCode.PERSISTENCE_ERROR, "Applications list error"));
     }
 
     @Override

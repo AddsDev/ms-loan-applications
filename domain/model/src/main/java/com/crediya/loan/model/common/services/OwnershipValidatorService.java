@@ -1,7 +1,6 @@
 package com.crediya.loan.model.common.services;
 
-import com.crediya.loan.model.common.exceptions.DomainException;
-import com.crediya.loan.model.common.exceptions.ErrorCode;
+import com.crediya.loan.model.common.exceptions.AuthenticationException;
 import com.crediya.loan.model.common.gateways.AuthContextPort;
 import com.crediya.loan.model.common.ownership.OwnableCommand;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +16,8 @@ public class OwnershipValidatorService {
         return auth.currentUser().flatMap(user -> {
             if (bypassAuthorities != null) {
                 for (String a : bypassAuthorities) {
-                    if (user.has(a) || user.hasRole(a.replace("ROLE_",""))) {
-                        return Mono.empty(); // bypass por rol/permisos
+                    if (user.has(a) || user.hasRole(a.replace("ROLE_", ""))) {
+                        return Mono.empty(); // bypass authorities
                     }
                 }
             }
@@ -29,12 +28,13 @@ public class OwnershipValidatorService {
 
             if (matchEmail) return Mono.empty();
 
-            return Mono.error(new DomainException(
-                    ErrorCode.EMAIL_MISMATCH,
+            return Mono.error(new AuthenticationException(
                     "The provided identity does not match the authenticated user's token"
             ));
         });
     }
 
-    private static String nullSafeLower(String s) { return s == null ? null : s.toLowerCase(); }
+    private static String nullSafeLower(String s) {
+        return s == null ? null : s.toLowerCase();
+    }
 }

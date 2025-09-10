@@ -10,6 +10,7 @@ import com.crediya.loan.model.loan.valueobjects.Document;
 import com.crediya.loan.model.loan.valueobjects.Email;
 import com.crediya.loan.model.loan.valueobjects.TermInMonths;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Objects;
@@ -18,10 +19,12 @@ import java.util.UUID;
 public record LoanApplication(
         String id,
         Email email,
+        String name,
         Document identityDocument,
         Amount amount,
         TermInMonths term,
         LoanType loanType,
+        BigDecimal baseSalary,
         ApplicationStatus status,
         OffsetDateTime createdAt
 ) {
@@ -33,10 +36,12 @@ public record LoanApplication(
         var newLoan = new LoanApplication(
                 UUID.randomUUID().toString(),
                 cmd.email(),
+                null,
                 new Document(cmd.document().value()),
                 new Amount(cmd.amount()),
                 new TermInMonths(cmd.termInMonths()),
                 cmd.type(),
+                null,
                 ApplicationStatus.PENDING,
                 OffsetDateTime.now(ZoneOffset.UTC)
         );
@@ -49,10 +54,10 @@ public record LoanApplication(
     }
 
     public LoanApplication markApproved() {
-        return new LoanApplication(id, email, identityDocument, amount, term, loanType, ApplicationStatus.APPROVED, createdAt);
+        return new LoanApplication(id, email, name, identityDocument, amount, term, loanType, baseSalary, ApplicationStatus.APPROVED, createdAt);
     }
 
     public LoanApplication markRejected() {
-        return new LoanApplication(id, email, identityDocument, amount, term, loanType, ApplicationStatus.REJECTED, createdAt);
+        return new LoanApplication(id, email, name, identityDocument, amount, term, loanType, baseSalary, ApplicationStatus.REJECTED, createdAt);
     }
 }
