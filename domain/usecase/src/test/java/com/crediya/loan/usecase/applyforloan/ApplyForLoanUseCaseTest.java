@@ -89,7 +89,7 @@ class ApplyForLoanUseCaseTest {
         lenient().when(policyRepository.loadAllPolicies()).thenReturn(Mono.just(policies));
         lenient().when(policyRepository.loanTypeExists(LoanType.CONSUMER)).thenReturn(Mono.just(true));
         lenient().when(emailValidationPort.checkEmail(any(Email.class))).thenAnswer(inv ->
-                Mono.just(new EmailValidationResult(inv.getArgument(0), true))
+                Mono.just(new EmailValidationResult(inv.getArgument(0), "User Name",new BigDecimal("510000.00"),true))
         );
 
         lenient().when(loanRepository.save(any(LoanApplication.class))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
@@ -158,7 +158,7 @@ class ApplyForLoanUseCaseTest {
     @Test
     void execute_fails_when_email_not_registered_logs_error_in_validation_stage() {
         when(emailValidationPort.checkEmail(any())).thenReturn(
-                Mono.just(new EmailValidationResult(cmd.email(), false))
+                Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "email address is not registered"))
         );
 
         StepVerifier.create(useCase.execute(cmd))

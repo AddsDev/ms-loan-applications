@@ -1,5 +1,6 @@
 package com.crediya.loan.model.common.services;
 
+import com.crediya.loan.model.common.exceptions.AuthenticationException;
 import com.crediya.loan.model.common.exceptions.DomainException;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.gateways.AuthContextPort;
@@ -11,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -80,10 +83,10 @@ class OwnershipValidatorServiceTest {
 
         StepVerifier.create(mono)
                 .expectErrorSatisfies(err -> {
-                    assertThat(err).isInstanceOf(DomainException.class);
+                    assertThat(err).isInstanceOf(AuthenticationException.class);
                     var de = (DomainException) err;
                     assertThat(de.getCode()).isEqualTo(ErrorCode.EMAIL_MISMATCH);
-                    assertThat(de).hasMessageContaining("does not match");
+                    assertThat(de).hasMessageContaining("The provided identity does not match the authenticated user's token");
                 })
                 .verify();
     }

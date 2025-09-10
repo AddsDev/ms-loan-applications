@@ -1,5 +1,6 @@
 package com.crediya.loan.model.loan.rules;
 
+import com.crediya.loan.model.loan.ApplicationStatus;
 import com.crediya.loan.model.loan.LoanApplication;
 import com.crediya.loan.model.loan.LoanType;
 import com.crediya.loan.model.loan.policy.AmountRange;
@@ -21,9 +22,14 @@ class AmountAllowedForTypeRuleTest {
 
     private LoanApplication mockLoanApplication(String amt) {
         return new LoanApplication(
-                "id", new Email("u@x.com"), new Document("123456"),
+                "id",
+                new Email("u@x.com"),
+                "Jhon Doe",
+                new Document("123456"),
                 new Amount(new BigDecimal(amt)), new TermInMonths(12),
-                LoanType.CONSUMER, null, OffsetDateTime.now()
+                LoanType.CONSUMER, new BigDecimal("5100000.00"),
+                ApplicationStatus.PENDING,
+                OffsetDateTime.now()
         );
     }
 
@@ -52,9 +58,15 @@ class AmountAllowedForTypeRuleTest {
     void shouldNotSatisfiedWhenIsNull() {
         var noPolicy = new AmountAllowedForTypeRule(new LoanPolicies(new EnumMap<>(LoanType.class), new EnumMap<>(LoanType.class)));
         assertThat(noPolicy.isSatisfiedBy(new LoanApplication(
-                "id", new Email("u@x.com"), new Document("123456"),
-                new Amount(new BigDecimal("150")), new TermInMonths(12),
-                null, null, OffsetDateTime.now()
+                "id",
+                new Email("u@x.com"),
+                "Jhon Doe",
+                new Document("123456"),
+                new Amount(new BigDecimal("150")),
+                new TermInMonths(12),
+                null, new BigDecimal("5100000.00"),
+                ApplicationStatus.PENDING,
+                OffsetDateTime.now()
         ))).isFalse();
         assertThat(noPolicy.getErrorMessage(mockLoanApplication("150"))).contains("not configured");
     }

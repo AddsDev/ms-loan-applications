@@ -20,9 +20,14 @@ class TermAllowedForTypeRuleTest {
 
     private LoanApplication mockApplicationWithTerm(int term) {
         return new LoanApplication(
-                "id", new Email("u@x.com"), new Document("123456"),
+                "id", new Email("u@x.com"),
+                "Jhon Doe",
+                new Document("123456"),
                 new Amount(new BigDecimal("1000.00")), new TermInMonths(term),
-                LoanType.CONSUMER, null, OffsetDateTime.now()
+                LoanType.CONSUMER,
+                new BigDecimal("5100000.00"),
+                null,
+                OffsetDateTime.now()
         );
     }
 
