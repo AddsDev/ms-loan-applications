@@ -1,8 +1,4 @@
-CREATE SCHEMA IF NOT EXISTS ms_applications;
-SET search_path TO ms_applications;
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto; -- gen_random_uuid()
-CREATE EXTENSION IF NOT EXISTS citext;
+SET search_path TO ms_applications, public;
 
 CREATE TABLE ms_applications.statuses
 (
@@ -36,7 +32,7 @@ CREATE TABLE ms_applications.applications
     application_id    UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
     amount            NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
     term              INTEGER        NOT NULL CHECK (term > 0), -- in months
-    email             TEXT           NOT NULL,
+    email             public.citext           NOT NULL,
     identity_document TEXT           NULL,
     status_id         UUID           NOT NULL,
     loan_type_id      UUID           NOT NULL,
@@ -56,7 +52,6 @@ CREATE INDEX IF NOT EXISTS ix_application_status ON ms_applications.applications
 CREATE INDEX IF NOT EXISTS ix_application_loan_type ON ms_applications.applications (loan_type_id);
 CREATE INDEX IF NOT EXISTS ix_application_email ON ms_applications.applications (email);
 
--- Auditing and Optimistic Locking Control
 CREATE OR REPLACE FUNCTION ms_applications.touch_row()
     RETURNS TRIGGER
     LANGUAGE plpgsql AS
@@ -86,7 +81,6 @@ CREATE TRIGGER tg_touch_applications
     FOR EACH ROW
 EXECUTE FUNCTION ms_applications.touch_row();
 
--- Business Rule: amount must be within the loan type's range
 CREATE OR REPLACE FUNCTION ms_applications.validate_application_amount()
     RETURNS TRIGGER
     LANGUAGE plpgsql AS
