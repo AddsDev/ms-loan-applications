@@ -1,5 +1,7 @@
 package com.crediya.loan.api.config;
 
+import com.crediya.loan.model.common.gateways.TraceLoggerPort;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +25,12 @@ import java.util.stream.Stream;
 @Configuration
 @EnableReactiveMethodSecurity
 public class SecurityConfig {
+
+    private final TraceLoggerPort logger;
+
+    public SecurityConfig(@Qualifier("entryPointLogger") TraceLoggerPort logger) {
+        this.logger = logger;
+    }
     @Bean
     public SecurityWebFilterChain springSecurityWebFilterChain(ServerHttpSecurity http,
                                                                Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthConverter,
@@ -33,7 +41,6 @@ public class SecurityConfig {
                 .cors(ServerHttpSecurity.CorsSpec::disable)
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.GET, "/actuator/**").permitAll()
-                        //.pathMatchers("/api/v1/solicitud").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth
@@ -52,6 +59,7 @@ public class SecurityConfig {
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtMonoConverter() {
         return (Jwt jwt) -> {
+            logger.info("jwt token: {}", jwt.getTokenValue());
             Set<String> roles = new LinkedHashSet<>();
 
             //Scope basic
@@ -86,7 +94,9 @@ public class SecurityConfig {
 
     @Bean
     ServerAuthenticationEntryPoint entryPoint() {
+        logger.trace("entryPoint UNAUTHORIZED");
         return (exchange, ex) -> {
+            logger.info("exchange unauthorized exchange={}, ex={}", exchange, ex);
             var resp = exchange.getResponse();
             resp.setStatusCode(HttpStatus.UNAUTHORIZED);
             return resp.setComplete();
@@ -94,7 +104,9 @@ public class SecurityConfig {
     }
     @Bean
     ServerAccessDeniedHandler accessDeniedHandler() {
+        logger.trace("accessDeniedHandler FORBIDDEN");
         return (exchange, ex) -> {
+            logger.info("exchange unauthorized exchange={}, ex={}", exchange, ex);
             var resp = exchange.getResponse();
             resp.setStatusCode(HttpStatus.FORBIDDEN);
             return resp.setComplete();
