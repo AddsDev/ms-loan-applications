@@ -5,30 +5,26 @@ spring:
     name: "loan-applications"
   devtools:
     add-properties: false
-  h2:
-    console:
-      enabled: true
-      path: "/h2"
-  profiles:
-    include: null
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:credi_ya_db_app}
+    user: ${DB_USER:crediya_user}
+    password: ${DB_PASSWORD:crediya_password.}
+    default-schema: ${DB_SCHEMA:ms_applications}
+    schemas: ${DB_SCHEMA:ms_users}
+    create-schemas: false
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    encoding: UTF-8
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://localhost:8080/.well-known/jwks.json
-          issuer-uri: http://localhost:8080
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8080}/.well-known/jwks.json
+          issuer-uri: ${AUTH_ISSUER_URI:http://localhost:8080}
   # Settings for AWS Secrets Manager
   #config:
   #  import: "aws-secretsmanager:${SECRET_PATH}"
-  flyway:
-    enabled: true
-    url: jdbc:postgresql://localhost:5433/credi_ya_db_app
-    user: crediya_app
-    password: crediya_password.
-    schemas: ms_app
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    connect-retries: 10
 management:
   endpoints:
     web:
@@ -38,19 +34,18 @@ management:
     health:
       probes:
         enabled: true
-cors:
-  allowed-origins: "http://localhost:4200,http://localhost:8081"
-
 adapters:
   r2dbc:
-    host: "localhost"
-    port: 5433
-    database: "credi_ya_db_app"
-    schema: "ms_applications"
-    username: "crediya_app"
-    password: "crediya_password."
+    host: ${DB_HOST:localhost}
+    port:  ${DB_PORT:5433}
+    database: ${DB_NAME:credi_ya_db_docker}
+    schema: ${DB_SCHEMA:ms_applications}
+    username: ${DB_USER:crediya_user_docker}
+    password: ${DB_PASSWORD:S3cre7.}
   email-validator:
-    base_url: "http://localhost:8080"
-    connect_timeout: 10000
-    read_timeout: 10000
-    default_retry_attempts: 1
+    base_url: ${EMAIL_VALIDATOR_BASE_URL:http://localhost:8080}
+    connect_timeout: ${EMAIL_VALIDATOR_CONNECT_TIMEOUT:10000}
+    read_timeout: ${EMAIL_VALIDATOR_READ_TIMEOUT:10000}
+    default_retry_attempts: ${EMAIL_VALIDATOR_DEFAULT_RETRY_ATTEMPTS:1}
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:8080}

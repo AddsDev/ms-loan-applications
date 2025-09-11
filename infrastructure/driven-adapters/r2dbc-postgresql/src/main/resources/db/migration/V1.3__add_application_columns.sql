@@ -1,4 +1,4 @@
-SET search_path TO ms_applications;
+SET search_path TO ms_applications, public;
 
 ALTER TABLE ms_applications.applications
     ADD COLUMN name TEXT NOT NULL DEFAULT '';

@@ -1,16 +1,51 @@
+name: crediya-loan-dev
 services:
-  postgres-db-app:
+  postgres-db:
+    env_file:
+      - .env
     image: postgres:17-alpine
-    container_name: crediya-postgres-app
+    container_name: postgres-service-loan
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: crediya_app
-      POSTGRES_PASSWORD: crediya_password.
-      POSTGRES_DB: credi_ya_db_app
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - "${PG_PORT:-5433}:5432"
     volumes:
-      - crediya_data_app_auth:/var/lib/postgresql/data
-    restart: always
+      - pg_data_credi_ya_loan_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - credi-ya-net-loan-dev
+
+  flyway:
+    env_file:
+      - .env
+    image: flyway/flyway:11.11.0
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    command: >
+      -url=jdbc:postgresql://postgres-db:5432/${POSTGRES_DB}
+      -user=${POSTGRES_USER}
+      -password=${POSTGRES_PASSWORD}
+      -schemas=${DB_SCHEMA}
+      -defaultSchema=${DB_SCHEMA}
+      -locations=filesystem:/flyway/sql
+      migrate
+    volumes:
+      - ../infrastructure/driven-adapters/r2dbc-postgresql/src/main/resources/db/migration:/flyway/sql:ro
+    networks:
+      - credi-ya-net-loan-dev
 
 volumes:
-  crediya_data_app_auth:
+  pg_data_credi_ya_loan_dev:
+
+networks:
+  credi-ya-net-loan-dev:
+    name: credi_ya_net_loan_dev
+    driver: bridge
