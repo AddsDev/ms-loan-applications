@@ -1,0 +1,39 @@
+server:
+  port: 8081
+
+spring:
+  h2:
+    console:
+      enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8080/.well-known/jwks.json
+          issuer-uri: http://localhost:8080
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5433/credi_ya_db_app
+    user: crediya_app
+    password: crediya_password.
+    schemas: ms_applications
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    connect-retries: 10
+
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8081"
+
+adapters:
+  r2dbc:
+    host: localhost
+    port: 5433
+    database: credi_ya_db_docker
+    schema: ms_applications
+    username: crediya_user_docker
+    password: S3cre7.
+  email-validator:
+    base_url: "http://localhost:8080"
+    connect_timeout: 10000
+    read_timeout: 10000
+    default_retry_attempts: 1

@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://auth-service:8080}/.well-known/jwks.json
+          issuer-uri: ${AUTH_ISSUER_URI:http://auth-service:8080}
+  flyway:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+
+adapters:
+  r2dbc:
+    host: ${DB_HOST:postgres}
+    port: ${DB_PORT:5432}
+    database: ${DB_NAME:credi_ya_loan_db}
+    schema: ${DB_SCHEMA:ms_applications}
+    username: ${DB_USER:crediya_user}
+    password: ${DB_PASSWORD:crediya_password.}
+  email-validator:
+    base_url: ${EMAIL_VALIDATOR_BASE_URL:http://auth-service:8080}
+    connect_timeout: ${EMAIL_VALIDATOR_CONNECT_TIMEOUT:10000}
+    read_timeout: ${EMAIL_VALIDATOR_READ_TIMEOUT:10000}
+    default_retry_attempts: ${EMAIL_VALIDATOR_DEFAULT_RETRY_ATTEMPTS:1}
