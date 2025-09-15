@@ -30,3 +30,7 @@ include ':rest-client'
 project(':rest-client').projectDir = file('./infrastructure/helpers/rest-client')
 include ':security'
 project(':security').projectDir = file('./infrastructure/helpers/security')
+include ':metrics'
+project(':metrics').projectDir = file('./infrastructure/helpers/metrics')
+include ':sqs-sender'
+project(':sqs-sender').projectDir = file('./infrastructure/driven-adapters/sqs-sender')

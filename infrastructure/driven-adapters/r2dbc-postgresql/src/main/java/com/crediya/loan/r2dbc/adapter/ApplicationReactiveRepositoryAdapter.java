@@ -3,6 +3,8 @@ package com.crediya.loan.r2dbc.adapter;
 import com.crediya.loan.model.common.exceptions.DomainException;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
+import com.crediya.loan.model.decision.DecisionEvent;
+import com.crediya.loan.model.loan.ApplicationStatus;
 import com.crediya.loan.model.loan.ApplicationSummary;
 import com.crediya.loan.model.loan.LoanApplication;
 import com.crediya.loan.model.loan.gateways.LoanRepository;
@@ -49,6 +51,22 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
         return repository.save(entityMapper.toEntity(domain))
                 .map(entityMapper::toDomain)
                 .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application already exists")));
+    }
+
+    @Override
+    public Mono<DecisionEvent> changeStatusIfPending(DecisionEvent decisionEvent) {
+        logger.trace("Update application for decision id={}, status={}, createdAt={}", decisionEvent.loanId(), decisionEvent.decision(), decisionEvent.createdAt());
+        return repository.findById(UUID.fromString(decisionEvent.loanId()))
+                .switchIfEmpty(Mono.error(new DomainException(ErrorCode.PERSISTENCE_ERROR, "Application not found")))
+                .map(entityMapper::toDomain)
+                .flatMap(app -> {
+                    if(app.status() != ApplicationStatus.PENDING) {
+                        return Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application status is not PENDING"));
+                    }
+                    return repository.save(entityMapper.toEntity(app, decisionEvent));
+                })
+                .map(entityMapper::toDomainDecision)
+                .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application not exists")));
     }
 
     @Override
