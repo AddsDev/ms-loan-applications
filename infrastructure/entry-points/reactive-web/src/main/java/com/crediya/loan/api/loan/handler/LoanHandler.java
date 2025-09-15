@@ -2,11 +2,14 @@ package com.crediya.loan.api.loan.handler;
 
 import com.crediya.loan.api.config.RequestValidatorConfig;
 import com.crediya.loan.api.loan.dto.ApplyForLoanRequest;
+import com.crediya.loan.api.loan.dto.DecisionEventRequest;
+import com.crediya.loan.api.loan.mapper.DecisionMapper;
 import com.crediya.loan.api.loan.mapper.LoanMapper;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
 import com.crediya.loan.model.loan.ApplicationStatus;
 import com.crediya.loan.model.loan.parameterobjects.ListApplicationsQueryCommand;
 import com.crediya.loan.usecase.applyforloan.ApplyForLoanUseCase;
+import com.crediya.loan.usecase.decision.DecisionLoanRequestUseCase;
 import com.crediya.loan.usecase.listapplications.ListApplicationUseCase;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,16 +25,20 @@ import java.util.List;
 public class LoanHandler {
     private final ApplyForLoanUseCase applyForLoanUseCase;
     private final ListApplicationUseCase listApplicationUseCase;
+    private final DecisionLoanRequestUseCase decisionLoanRequestUseCase;
     private final RequestValidatorConfig validator;
     private final LoanMapper loanMapper;
+    private final DecisionMapper decisionMapper;
     private final TraceLoggerPort logger;
 
 
-    public LoanHandler(ApplyForLoanUseCase applyForLoanUseCase, ListApplicationUseCase listApplicationUseCase,@Qualifier("entryPointLogger") TraceLoggerPort logger, LoanMapper loanMapper, RequestValidatorConfig validator) {
+    public LoanHandler(ApplyForLoanUseCase applyForLoanUseCase, ListApplicationUseCase listApplicationUseCase, DecisionLoanRequestUseCase decisionLoanRequestUseCase, @Qualifier("entryPointLogger") TraceLoggerPort logger, LoanMapper loanMapper, DecisionMapper decisionMapper, RequestValidatorConfig validator) {
         this.applyForLoanUseCase = applyForLoanUseCase;
         this.listApplicationUseCase = listApplicationUseCase;
+        this.decisionLoanRequestUseCase = decisionLoanRequestUseCase;
         this.logger = logger;
         this.loanMapper = loanMapper;
+        this.decisionMapper = decisionMapper;
         this.validator = validator;
     }
 
@@ -48,6 +55,18 @@ public class LoanHandler {
                     return ServerResponse.ok().bodyValue(response);
                 })
                 .doOnError(e -> logger.error("Error registering apply for loan", e));
+    }
+    public Mono<ServerResponse> registerDecision(ServerRequest serverRequest) {
+        return serverRequest.bodyToMono(DecisionEventRequest.class)
+                .switchIfEmpty(Mono.error(() -> new RuntimeException("Request body is empty")))
+                .flatMap(validator::validate)
+                .map(decisionMapper::toCommand)
+                .flatMap(decisionLoanRequestUseCase::execute)
+                .map(decisionMapper::toResponse)
+                .flatMap(response -> {
+                    logger.trace("Loan application decision successfully registered: {}", response);
+                    return ServerResponse.ok().bodyValue(response);
+                }).doOnError(e -> logger.error("Error registering loan application decision", e));
     }
 
     @PreAuthorize( "hasAnyAuthority('SCOPE_loan:read','ROLE_ASESOR','ROLE_ADMINISTRADOR')")

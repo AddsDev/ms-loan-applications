@@ -32,6 +32,12 @@ public class ApplicationEntity {
     @Column("email")
     private String email;
 
+    @Column("advisor_email")
+    private String advisorEmail;
+
+    @Column("reason")
+    private String reason;
+
     @Column("name")
     private String name;
 

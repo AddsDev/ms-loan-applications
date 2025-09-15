@@ -46,6 +46,8 @@ public interface TraceLoggerPort {
      */
     void error(String message);
 
+    void error(String message, Object... args);
+
     /**
      * Logs a message at ERROR level.
      * @param message the message to log.

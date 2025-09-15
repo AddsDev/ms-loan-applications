@@ -58,6 +58,11 @@ public class TraceLoggerAdapter implements TraceLoggerPort {
     }
 
     @Override
+    public void error(String message, Object... args) {
+        this.logger.error(message, args);
+    }
+
+    @Override
     public void error(String message, Throwable t) {
         this.logger.error(message, t);
     }
