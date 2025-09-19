@@ -2,7 +2,7 @@ SET search_path TO ms_applications, public;
 
 INSERT INTO ms_applications.statuses (status_id, name, description)
 VALUES (gen_random_uuid(), 'PENDING', 'Pending review by advisor'),
-       (gen_random_uuid(), 'MANUAL_REVIEW', 'Manual review required'),
+       (gen_random_uuid(), 'REVIEW_MANUAL', 'Manual review required'),
        (gen_random_uuid(), 'APPROVED', 'Approved'),
        (gen_random_uuid(), 'REJECTED', 'Rejected');
 
