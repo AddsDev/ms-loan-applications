@@ -34,13 +34,15 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
     private final TraceLoggerPort logger;
     private final ApplicationEntityMapper entityMapper;
     private final ApplicationSummaryMapper summaryMapper;
+    private final ReactiveTransaction tx;
 
-    protected ApplicationReactiveRepositoryAdapter(DatabaseClient db, ApplicationReactiveRepository repository, ObjectMapper mapper, ApplicationEntityMapper entityMapper, ApplicationSummaryMapper summaryMapper, TraceLoggerPort logger) {
+    protected ApplicationReactiveRepositoryAdapter(DatabaseClient db, ApplicationReactiveRepository repository, ObjectMapper mapper, ApplicationEntityMapper entityMapper, ApplicationSummaryMapper summaryMapper, TraceLoggerPort logger, ReactiveTransaction tx) {
         super(repository, mapper, entityMapper::toDomain);
         this.db = db;
         this.entityMapper = entityMapper;
         this.summaryMapper = summaryMapper;
         this.logger = logger;
+        this.tx = tx;
     }
 
     @Override
@@ -55,7 +57,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
                 .map(e -> entityMapper.update(e, newStatus))
                 .flatMap(entity -> {
                     logger.trace("repo=Application update status id={}", entity.getApplicationId());
-                    return repository.save(entity);
+                    return tx.transactional(() -> repository.save(entity));
                 })
                 .map(e -> true);
     }
@@ -63,7 +65,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
     @Override
     public Mono<LoanApplication> save(LoanApplication domain) {
         logger.trace("Saving application id={}, document={}, createdAt={}", domain.id(), domain.identityDocument().value(), domain.createdAt());
-        return repository.save(entityMapper.toEntity(domain))
+        return tx.transactional(() -> repository.save(entityMapper.toEntity(domain)))
                 .map(entityMapper::toDomain)
                 .doOnSuccess(d -> logger.info("repo=Application save ok id={}", d.id()))
                 .doOnError(e -> logger.error("repo=Application save fail id={}", domain.id(), e))
@@ -80,7 +82,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
                 .map(app -> entityMapper.toEntity(app, decisionEvent))
                 .flatMap(entity -> {
                     logger.trace("repo=Application update status id={}", entity.getApplicationId());
-                    return repository.save(entity);
+                    return tx.transactional(() -> repository.save(entity));
                 })
                 .map(entityMapper::toDomainDecision)
                 .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application not exists")));

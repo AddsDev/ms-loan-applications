@@ -1,7 +1,6 @@
 package com.crediya.loan.config;
 
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
-import com.crediya.loan.model.common.gateways.TransactionPort;
 import com.crediya.loan.model.loan.gateways.LoanPolicyRepository;
 import com.crediya.loan.model.loan.gateways.LoanRepository;
 import com.crediya.loan.usecase.applyforloan.ApplyForLoanUseCase;
@@ -42,11 +41,6 @@ class UseCasesConfigTest {
     @Bean
     public LoanRepository loanRepository() {
         return Mockito.mock(LoanRepository.class);
-    }
-
-    @Bean
-    public TransactionPort transactionPort() {
-        return Mockito.mock(TransactionPort.class);
     }
 
     @Bean

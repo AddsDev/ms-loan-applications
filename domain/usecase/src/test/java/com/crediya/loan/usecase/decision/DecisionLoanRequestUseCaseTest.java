@@ -1,8 +1,6 @@
 package com.crediya.loan.usecase.decision;
 
-import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
-import com.crediya.loan.model.common.gateways.TransactionPort;
 import com.crediya.loan.model.common.ownership.Authorities;
 import com.crediya.loan.model.common.services.OwnershipValidatorService;
 import com.crediya.loan.model.decision.DecisionEvent;
@@ -19,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -35,8 +32,6 @@ class DecisionLoanRequestUseCaseTest {
     @Mock
     private TraceLoggerPort logger;
     @Mock
-    private TransactionPort tx;
-    @Mock
     private OwnershipValidatorService ownershipValidator;
 
     private DecisionLoanRequestUseCase useCase;
@@ -44,7 +39,7 @@ class DecisionLoanRequestUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new DecisionLoanRequestUseCase(loanRepository, decisionPublisher, logger, tx, ownershipValidator);
+        useCase = new DecisionLoanRequestUseCase(loanRepository, decisionPublisher, logger, ownershipValidator);
 
         cmd = new DecisionEventCommand(
                 "LN-001",
@@ -54,11 +49,6 @@ class DecisionLoanRequestUseCaseTest {
                 new Email("client@mail.com"),
                 null
         );
-
-        lenient().when(tx.transactional(any())).thenAnswer(inv -> {
-            Supplier<Mono<?>> supplier = inv.getArgument(0);
-            return supplier.get();
-        });
 
         lenient().when(ownershipValidator.assertOwner(any(), any())).thenReturn(Mono.empty());
 
@@ -81,14 +71,13 @@ class DecisionLoanRequestUseCaseTest {
         verify(ownershipValidator).assertOwner(eq(cmd), argThat(s ->
                 s != null && s.contains(Authorities.ROLE_ADMINISTRADOR) && s.size() == 1));
 
-        verify(tx).transactional(any());
         verify(loanRepository).changeStatusIfPending(any(DecisionEvent.class));
         verify(decisionPublisher).publish(any(DecisionEvent.class));
 
         verify(logger).trace("tx[DecisionLoanRequestUseCase] start");
-        verify(logger).trace("usecase=DecisionLoanRequest start loanId={} decision={}",
+        verify(logger).trace("useCase=DecisionLoanRequest start loanId={} decision={}",
                 "LN-001", ApplicationStatus.APPROVED);
-        verify(logger).trace("usecase=DecisionLoanRequest success loanId={} decision={}",
+        verify(logger).trace("useCase=DecisionLoanRequest success loanId={} decision={}",
                 "LN-001", ApplicationStatus.APPROVED);
         verify(logger, never()).error(startsWith("tx[DecisionLoanRequestUseCase] fail"), any(), any());
     }
@@ -102,7 +91,7 @@ class DecisionLoanRequestUseCaseTest {
                 .verifyComplete();
 
         verify(decisionPublisher).publish(any());
-        verify(logger).trace("usecase=DecisionLoanRequest success loanId={} decision={}",
+        verify(logger).trace("useCase=DecisionLoanRequest success loanId={} decision={}",
                 "LN-001", ApplicationStatus.APPROVED);
     }
 
@@ -111,9 +100,9 @@ class DecisionLoanRequestUseCaseTest {
         StepVerifier.create(useCase.execute(cmd)).expectNextCount(1).verifyComplete();
 
         verify(logger).trace("tx[DecisionLoanRequestUseCase] start");
-        verify(logger).trace("usecase=DecisionLoanRequest start loanId={} decision={}",
+        verify(logger).trace("useCase=DecisionLoanRequest start loanId={} decision={}",
                 "LN-001", ApplicationStatus.APPROVED);
-        verify(logger).trace("usecase=DecisionLoanRequest success loanId={} decision={}",
+        verify(logger).trace("useCase=DecisionLoanRequest success loanId={} decision={}",
                 "LN-001", ApplicationStatus.APPROVED);
         verifyNoMoreInteractions(logger);
     }

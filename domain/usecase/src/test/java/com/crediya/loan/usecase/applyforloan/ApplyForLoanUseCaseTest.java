@@ -4,7 +4,6 @@ import com.crediya.loan.model.common.exceptions.DomainException;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.gateways.EmailValidationPort;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
-import com.crediya.loan.model.common.gateways.TransactionPort;
 import com.crediya.loan.model.common.ownership.OwnableCommand;
 import com.crediya.loan.model.common.services.OwnershipValidatorService;
 import com.crediya.loan.model.loan.ApplicationStatus;
@@ -31,7 +30,6 @@ import reactor.test.StepVerifier;
 import java.math.BigDecimal;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,8 +43,6 @@ class ApplyForLoanUseCaseTest {
     private EmailValidationPort emailValidationPort;
     @Mock
     private LoanPolicyRepository policyRepository;
-    @Mock
-    private TransactionPort tx;
     @Mock
     private TraceLoggerPort logger;
     @Mock
@@ -66,7 +62,7 @@ class ApplyForLoanUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new ApplyForLoanUseCase(loanRepository, emailValidationPort, policyRepository, tx, logger, ownershipValidator);
+        useCase = new ApplyForLoanUseCase(loanRepository, emailValidationPort, policyRepository, logger, ownershipValidator);
 
         cmd = new ApplyForLoanCommand(
                 new Document("123456"), // 6 dígitos para probar máscara "****3456"
@@ -79,11 +75,6 @@ class ApplyForLoanUseCaseTest {
         LoanPolicies policies = policiesForConsumer(
                 new BigDecimal("500000.00"), new BigDecimal("30000000.00")
         );
-
-        lenient().when(tx.transactional(any())).thenAnswer(inv -> {
-            Supplier<Mono<?>> supplier = inv.getArgument(0);
-            return supplier.get();
-        });
 
         lenient().when(ownershipValidator.assertOwner(any(OwnableCommand.class), any())).thenReturn(Mono.empty());
         lenient().when(policyRepository.loadAllPolicies()).thenReturn(Mono.just(policies));
@@ -109,7 +100,6 @@ class ApplyForLoanUseCaseTest {
                 })
                 .verifyComplete();
 
-        verify(tx, times(1)).transactional(any());
         verify(loanRepository, times(1)).save(any(LoanApplication.class));
 
         verify(logger).trace("ApplyForLoan start, doc={} email={}", "****3456", cmd.email());
@@ -186,8 +176,6 @@ class ApplyForLoanUseCaseTest {
                         .hasMessageContaining("DB down"))
                 .verify();
 
-        // tx usado, intento de guardar realizado, y log de fail
-        verify(tx, times(1)).transactional(any());
         verify(loanRepository, times(1)).save(any());
         verify(logger).error(eq("tx[ApplyForLoanUseCase] fail"), any(Throwable.class));
     }
