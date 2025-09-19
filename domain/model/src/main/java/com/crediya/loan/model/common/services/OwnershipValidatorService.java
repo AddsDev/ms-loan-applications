@@ -2,6 +2,7 @@ package com.crediya.loan.model.common.services;
 
 import com.crediya.loan.model.common.exceptions.AuthenticationException;
 import com.crediya.loan.model.common.gateways.AuthContextPort;
+import com.crediya.loan.model.common.ownership.Authorities;
 import com.crediya.loan.model.common.ownership.OwnableCommand;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
@@ -12,11 +13,11 @@ import java.util.Set;
 public class OwnershipValidatorService {
     private final AuthContextPort auth;
 
-    public Mono<Void> assertOwner(OwnableCommand cmd, Set<String> bypassAuthorities) {
+    public Mono<Void> assertOwner(OwnableCommand cmd, Set<Authorities> bypassAuthorities) {
         return auth.currentUser().flatMap(user -> {
             if (bypassAuthorities != null) {
-                for (String a : bypassAuthorities) {
-                    if (user.has(a) || user.hasRole(a.replace("ROLE_", ""))) {
+                for (Authorities a : bypassAuthorities) {
+                    if (user.has(a.name()) || user.hasRole(a.name().replace("ROLE_", ""))) {
                         return Mono.empty(); // bypass authorities
                     }
                 }

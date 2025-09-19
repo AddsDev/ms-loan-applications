@@ -5,6 +5,7 @@ import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.gateways.EmailValidationPort;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
 import com.crediya.loan.model.common.gateways.TransactionPort;
+import com.crediya.loan.model.common.ownership.Authorities;
 import com.crediya.loan.model.common.services.OwnershipValidatorService;
 import com.crediya.loan.model.loan.LoanApplication;
 import com.crediya.loan.model.loan.gateways.LoanPolicyRepository;
@@ -25,7 +26,7 @@ public class ApplyForLoanUseCase {
     private final OwnershipValidatorService ownershipValidator;
 
     public Mono<LoanApplication> execute(ApplyForLoanCommand command) {
-        return ownershipValidator.assertOwner(command, Set.of("ROLE_ADMINISTRADOR"))
+        return ownershipValidator.assertOwner(command, Set.of(Authorities.ROLE_ADMINISTRADOR))
                 .then(Mono.defer(() ->
                         policyRepository.loadAllPolicies()
                                 .switchIfEmpty(Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Loan policies not configured")))
