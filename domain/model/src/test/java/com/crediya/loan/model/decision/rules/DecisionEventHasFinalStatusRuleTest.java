@@ -63,7 +63,7 @@ class DecisionEventHasFinalStatusRuleTest {
         var msg1 = DecisionEventHasFinalStatusRule.INSTANCE.getErrorMessage(withNull);
         assertThat(msg1).contains("APPROVED").contains("REJECTED").contains("received:null");
 
-        var withOther = new DecisionEvent("L2", ApplicationStatus.MANUAL_REVIEW, "r", new Email("a@x.com"), null, "e", 1, OffsetDateTime.now());
+        var withOther = new DecisionEvent("L2", ApplicationStatus.REVIEW_MANUAL, "r", new Email("a@x.com"), null, "e", 1, OffsetDateTime.now());
         var msg2 = DecisionEventHasFinalStatusRule.INSTANCE.getErrorMessage(withOther);
         assertThat(msg2).contains("received:IN_REVIEW");
     }

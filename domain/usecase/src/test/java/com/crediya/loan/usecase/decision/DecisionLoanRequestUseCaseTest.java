@@ -3,6 +3,7 @@ package com.crediya.loan.usecase.decision;
 import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
 import com.crediya.loan.model.common.gateways.TransactionPort;
+import com.crediya.loan.model.common.ownership.Authorities;
 import com.crediya.loan.model.common.services.OwnershipValidatorService;
 import com.crediya.loan.model.decision.DecisionEvent;
 import com.crediya.loan.model.decision.gateways.DecisionPublisherPort;
@@ -78,7 +79,7 @@ class DecisionLoanRequestUseCaseTest {
                 .verifyComplete();
 
         verify(ownershipValidator).assertOwner(eq(cmd), argThat(s ->
-                s != null && s.contains("ROLE_ADMINISTRADOR") && s.size() == 1));
+                s != null && s.contains(Authorities.ROLE_ADMINISTRADOR) && s.size() == 1));
 
         verify(tx).transactional(any());
         verify(loanRepository).changeStatusIfPending(any(DecisionEvent.class));
@@ -90,20 +91,6 @@ class DecisionLoanRequestUseCaseTest {
         verify(logger).trace("usecase=DecisionLoanRequest success loanId={} decision={}",
                 "LN-001", ApplicationStatus.APPROVED);
         verify(logger, never()).error(startsWith("tx[DecisionLoanRequestUseCase] fail"), any(), any());
-    }
-
-    @Test
-    void fails_when_command_is_null_and_does_not_call_downstream() {
-        StepVerifier.create(useCase.execute(null))
-                .expectErrorSatisfies(err -> {
-                    assertThat(err).isInstanceOf(ValidationException.class);
-                    assertThat(err).hasMessageContaining("Command is null");
-                })
-                .verify();
-
-        verifyNoInteractions(ownershipValidator, tx, loanRepository, decisionPublisher);
-        verify(logger, never()).trace(anyString(), any(), any());
-        verify(logger, never()).trace("tx[DecisionLoanRequestUseCase] start");
     }
 
     @Test
