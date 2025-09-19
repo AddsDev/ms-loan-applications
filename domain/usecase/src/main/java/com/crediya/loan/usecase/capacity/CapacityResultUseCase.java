@@ -1,7 +1,6 @@
-package com.crediya.loan.sqs.sender.adapter;
+package com.crediya.loan.usecase.capacity;
 
 import com.crediya.loan.model.capacity.LoanCapacityCalculatedEvent;
-import com.crediya.loan.model.capacity.events.CapacityResponse;
 import com.crediya.loan.model.capacity.gateways.ApplicationStateRepository;
 import com.crediya.loan.model.capacity.gateways.CapacityResultHandlerPort;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
@@ -9,12 +8,10 @@ import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
 import com.crediya.loan.model.common.gateways.TransactionPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-@Component
 @RequiredArgsConstructor
-public class SqsCapacityResultHandlerAdapter implements CapacityResultHandlerPort {
+public class CapacityResultUseCase  implements CapacityResultHandlerPort {
     private final ApplicationStateRepository stateRepository;
     private final TransactionPort tx;
     private final TraceLoggerPort logger;

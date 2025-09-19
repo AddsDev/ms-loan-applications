@@ -9,7 +9,6 @@ import com.crediya.loan.model.capacity.valueobjects.NewLoan;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
-import com.crediya.loan.model.common.gateways.TransactionPort;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -20,7 +19,6 @@ public class RequestLoanCapacityUseCase {
     private final CapacityRepository readPort;
     private final LoanCapacityPublisherPort publisher;
     private final TraceLoggerPort logger;
-    private final TransactionPort tx;
 
     public Mono<LoanCapacityRequested> execute(String loanId) {
         if (loanId == null || loanId.isBlank()) {
@@ -56,11 +54,7 @@ public class RequestLoanCapacityUseCase {
                                     ))
                             );
                 })
-                .flatMap(event ->
-                        tx.transactional(() ->
-                                publisher.publish(event).thenReturn(event)
-                        )
-                )
+                .flatMap(event -> publisher.publish(event).thenReturn(event))
                 .doOnSuccess(ev -> {
                     if (ev != null) {
                         logger.info("useCase[RequestLoanCapacity] published loanId={} version={}", ev.loanId(), ev.eventVersion());

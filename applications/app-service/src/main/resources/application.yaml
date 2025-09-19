@@ -49,5 +49,13 @@ cors:
 adapter:
   sqs:
     region: "us-east-1"
-    queueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/laon_request_queue"
-    # endpoint: "http://localhost:4566"
+    requestQueueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/laon_request_queue"
+    automaticQueueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/loan_automatic_queue"
+entrypoint:
+  sqs:
+    region: "us-east-1"
+    queueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/result_automatic_queue"
+    waitTimeSeconds: 20
+    maxNumberOfMessages: 10
+    visibilityTimeoutSeconds: 30
+    numberOfThreads: 1
