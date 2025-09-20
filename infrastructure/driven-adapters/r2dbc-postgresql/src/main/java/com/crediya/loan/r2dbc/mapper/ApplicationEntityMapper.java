@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.RoundingMode;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Component
@@ -49,6 +48,17 @@ public class ApplicationEntityMapper {
                 status,
                 entity.getCreatedAt()
         );
+    }
+
+    public ApplicationEntity update(ApplicationEntity entity, ApplicationStatus status) {
+        if (entity == null) return null;
+        UUID uuid = UUID.fromString(catalog.toStatusId(status));
+        ApplicationStatus currentStatus = catalog.toStatus(uuid.toString());
+        if (currentStatus == null) {
+            throw new ValidationException(ErrorCode.PERSISTENCE_ERROR, "Unknown status_id=" + entity.getStatusId());
+        }
+        entity.setStatusId(uuid);
+        return entity;
     }
 
     public DecisionEvent toDomainDecision(ApplicationEntity entity) {

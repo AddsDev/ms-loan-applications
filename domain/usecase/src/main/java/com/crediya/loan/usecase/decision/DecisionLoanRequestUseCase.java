@@ -3,7 +3,7 @@ package com.crediya.loan.usecase.decision;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.exceptions.ValidationException;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
-import com.crediya.loan.model.common.gateways.TransactionPort;
+import com.crediya.loan.model.common.ownership.Authorities;
 import com.crediya.loan.model.common.services.OwnershipValidatorService;
 import com.crediya.loan.model.decision.DecisionEvent;
 import com.crediya.loan.model.decision.gateways.DecisionPublisherPort;
@@ -19,32 +19,25 @@ public class DecisionLoanRequestUseCase {
     private final LoanRepository loanRepository;
     private final DecisionPublisherPort decisionPublisher;
     private final TraceLoggerPort logger;
-    private final TransactionPort tx;
     private final OwnershipValidatorService ownershipValidator;
 
 
     public Mono<DecisionEvent> execute(DecisionEventCommand command) {
         return Mono.defer(() -> {
-            if (command == null) {
-                return Mono.error(new ValidationException(ErrorCode.REQUIRED_FIELD, "Command is null"));
-            }
             logger.trace("usecase=DecisionLoanRequest start loanId={} decision={}",
                     command.loanId(), command.decision());
-
-            return ownershipValidator.assertOwner(command, Set.of("ROLE_ADMINISTRADOR"))
+            return ownershipValidator.assertOwner(command, Set.of(Authorities.ROLE_ADMINISTRADOR))
                     .then(Mono.fromSupplier(() -> DecisionEvent.register(command)))
                     .flatMap(event ->
-                            tx.transactional(() ->
-                                    loanRepository.changeStatusIfPending(event)
-                                            .switchIfEmpty(Mono.error(new ValidationException(ErrorCode.BUSINESS_RULE_VIOLATION,
-                                                    "Only PENDING can be changed to APPROVED or REJECTED.")))
-                                            .flatMap( response ->
-                                                    decisionPublisher.publish(response)
-                                                            .then()
-                                                            .onErrorResume(e -> Mono.empty())
-                                            )
-                                            .thenReturn(event)
-                            )
+                            loanRepository.changeStatusIfPending(event)
+                                    .switchIfEmpty(Mono.error(new ValidationException(ErrorCode.BUSINESS_RULE_VIOLATION,
+                                            "Only PENDING can be changed to APPROVED or REJECTED.")))
+                                    .flatMap( response ->
+                                            decisionPublisher.publish(response)
+                                                    .then()
+                                                    .onErrorResume(e -> Mono.empty())
+                                    )
+                                    .thenReturn(event)
                     )
                     .doOnSuccess(de -> {
                         if (de != null) {

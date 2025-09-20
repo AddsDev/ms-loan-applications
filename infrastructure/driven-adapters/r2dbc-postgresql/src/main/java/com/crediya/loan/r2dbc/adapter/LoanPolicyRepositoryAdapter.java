@@ -9,7 +9,6 @@ import com.crediya.loan.model.loan.policy.AmountRange;
 import com.crediya.loan.model.loan.policy.LoanPolicies;
 import com.crediya.loan.model.loan.policy.TermRange;
 import com.crediya.loan.r2dbc.entity.LoanTypeEntity;
-import com.crediya.loan.r2dbc.mapper.LoanPoliciesMapper;
 import com.crediya.loan.r2dbc.mapper.LoanTypeEntityMapper;
 import com.crediya.loan.r2dbc.repository.LoanTypeReactiveRepository;
 import lombok.RequiredArgsConstructor;

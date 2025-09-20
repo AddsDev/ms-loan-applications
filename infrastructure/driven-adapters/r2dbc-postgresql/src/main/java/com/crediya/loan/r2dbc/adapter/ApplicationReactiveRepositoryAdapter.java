@@ -1,5 +1,6 @@
 package com.crediya.loan.r2dbc.adapter;
 
+import com.crediya.loan.model.capacity.gateways.ApplicationStateRepository;
 import com.crediya.loan.model.common.exceptions.DomainException;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
@@ -15,6 +16,9 @@ import com.crediya.loan.r2dbc.entity.ApplicationEntity;
 import com.crediya.loan.r2dbc.helper.ReactiveAdapterOperations;
 import com.crediya.loan.r2dbc.mapper.ApplicationEntityMapper;
 import com.crediya.loan.r2dbc.mapper.ApplicationSummaryMapper;
+import com.crediya.loan.r2dbc.query.ApplicationQuerySpec;
+import com.crediya.loan.r2dbc.query.DefaultApplicationQuerySpec;
+import com.crediya.loan.r2dbc.query.SqlFragments;
 import com.crediya.loan.r2dbc.repository.ApplicationReactiveRepository;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.r2dbc.core.DatabaseClient;
@@ -22,22 +26,23 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
 import java.util.UUID;
 
 @Repository
-public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperations<LoanApplication, ApplicationEntity, UUID, ApplicationReactiveRepository> implements LoanRepository {
+public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperations<LoanApplication, ApplicationEntity, UUID, ApplicationReactiveRepository> implements LoanRepository, ApplicationStateRepository {
     private final DatabaseClient db;
     private final TraceLoggerPort logger;
     private final ApplicationEntityMapper entityMapper;
     private final ApplicationSummaryMapper summaryMapper;
+    private final ReactiveTransaction tx;
 
-    protected ApplicationReactiveRepositoryAdapter(DatabaseClient db, ApplicationReactiveRepository repository, ObjectMapper mapper, ApplicationEntityMapper entityMapper, ApplicationSummaryMapper summaryMapper,TraceLoggerPort logger) {
+    protected ApplicationReactiveRepositoryAdapter(DatabaseClient db, ApplicationReactiveRepository repository, ObjectMapper mapper, ApplicationEntityMapper entityMapper, ApplicationSummaryMapper summaryMapper, TraceLoggerPort logger, ReactiveTransaction tx) {
         super(repository, mapper, entityMapper::toDomain);
         this.db = db;
         this.entityMapper = entityMapper;
         this.summaryMapper = summaryMapper;
         this.logger = logger;
+        this.tx = tx;
     }
 
     @Override
@@ -46,10 +51,24 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
     }
 
     @Override
+    public Mono<Boolean> changeStatus(String loanId, ApplicationStatus newStatus) {
+        return repository.findById(UUID.fromString(loanId))
+                .switchIfEmpty(Mono.error(new DomainException(ErrorCode.PERSISTENCE_ERROR, "Application not found")))
+                .map(e -> entityMapper.update(e, newStatus))
+                .flatMap(entity -> {
+                    logger.trace("repo=Application update status id={}", entity.getApplicationId());
+                    return tx.transactional(() -> repository.save(entity));
+                })
+                .map(e -> true);
+    }
+
+    @Override
     public Mono<LoanApplication> save(LoanApplication domain) {
         logger.trace("Saving application id={}, document={}, createdAt={}", domain.id(), domain.identityDocument().value(), domain.createdAt());
-        return repository.save(entityMapper.toEntity(domain))
+        return tx.transactional(() -> repository.save(entityMapper.toEntity(domain)))
                 .map(entityMapper::toDomain)
+                .doOnSuccess(d -> logger.info("repo=Application save ok id={}", d.id()))
+                .doOnError(e -> logger.error("repo=Application save fail id={}", domain.id(), e))
                 .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application already exists")));
     }
 
@@ -59,11 +78,11 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
         return repository.findById(UUID.fromString(decisionEvent.loanId()))
                 .switchIfEmpty(Mono.error(new DomainException(ErrorCode.PERSISTENCE_ERROR, "Application not found")))
                 .map(entityMapper::toDomain)
-                .flatMap(app -> {
-                    if(app.status() != ApplicationStatus.PENDING) {
-                        return Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application status is not PENDING"));
-                    }
-                    return repository.save(entityMapper.toEntity(app, decisionEvent));
+                .flatMap(app -> app.status() == ApplicationStatus.PENDING ? Mono.just(app) : Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application status is not PENDING")))
+                .map(app -> entityMapper.toEntity(app, decisionEvent))
+                .flatMap(entity -> {
+                    logger.trace("repo=Application update status id={}", entity.getApplicationId());
+                    return tx.transactional(() -> repository.save(entity));
                 })
                 .map(entityMapper::toDomainDecision)
                 .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application not exists")));
@@ -71,88 +90,27 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
 
     @Override
     public Flux<ApplicationSummary> findForAdvisor(ListApplicationsQueryCommand cmd, SortSpec sort) {
-        var sql = new StringBuilder("""
-                SELECT a.application_id as id, a.email as email, a.identity_document as document, a.name as applicantName, a.base_salary as baseSalary,
-                    lt.code as loan_type,
-                    a.amount as amount, a.term as term,
-                    lt.interest_rate as termInMonths,
-                    s.name as status,
-                    a.created_at as createdAt
-                FROM applications a
-                JOIN statuses s ON s.status_id = a.status_id
-                JOIN loan_types lt ON lt.loan_type_id = a.loan_type_id
-                WHERE 1=1
-                """);
-        var params = new HashMap<String, Object>();
-
-        attachStatuses(cmd, sql, params);
-        attachEmail(cmd, sql, params);
-        attachDocument(cmd, sql, params);
-        attachLoanType(cmd, sql, params);
-
-        if (sort != null) {
-            sql.append(" ORDER BY ").append(sort.property()).append(sort.descending() ? " DESC" : " ASC");
-            sql.append(" LIMIT :limit OFFSET :offset");
-            params.put("limit", cmd.size());
-            params.put("offset", Math.max(cmd.page() , 0) * cmd.size());
+        ApplicationQuerySpec spc = DefaultApplicationQuerySpec.from(cmd, sort);
+        var sql = SqlFragments.queryFilterSql(spc);
+        var exe = db.sql(sql).bindValues(spc.parameters());
+        if (spc.pageSize().isPresent()) {
+            exe = exe.bind("pageSize", spc.pageSize().getAsInt());
         }
-
-        return db.sql(sql.toString())
-                .bindValues(params)
-                .map((row, meta) -> summaryMapper.toSummary(row))
-                .all().onErrorMap( e -> new DomainException(ErrorCode.PERSISTENCE_ERROR, "Applications list error"));
+        if (spc.offset().isPresent()) {
+            exe = exe.bind("offset", spc.offset().getAsLong());
+        }
+        return exe.map((row, meta) -> summaryMapper.toSummary(row))
+                .all()
+                .onErrorMap(e -> new DomainException(ErrorCode.PERSISTENCE_ERROR, "Applications list error" + e.getMessage()));
     }
 
     @Override
     public Mono<Long> countForAdvisor(ListApplicationsQueryCommand cmd) {
-        var sql = new StringBuilder("""
-                SELECT COUNT(1) as count
-                FROM applications a
-                JOIN statuses s ON s.status_id = a.status_id
-                JOIN loan_types lt ON lt.loan_type_id = a.loan_type_id
-                WHERE 1=1
-                """);
-        var params = new HashMap<String, Object>();
-
-        attachStatuses(cmd, sql, params);
-        attachEmail(cmd, sql, params);
-        attachDocument(cmd, sql, params);
-        attachLoanType(cmd, sql, params);
-
-        return db.sql(sql.toString())
-                .bindValues(params)
+        ApplicationQuerySpec spc = DefaultApplicationQuerySpec.from(cmd, null);
+        var sql = SqlFragments.countSql(spc);
+        return db.sql(sql)
+                .bindValues(spc.parameters())
                 .map((row, meta) -> row.get(0, Long.class))
                 .one();
-    }
-
-    private static void attachLoanType(ListApplicationsQueryCommand cmd, StringBuilder sql, HashMap<String, Object> params) {
-        if (cmd.loanTypeCode() != null && !cmd.loanTypeCode().isBlank()) {
-            sql.append(" AND lt.code = :loanTypeCode ");
-            params.put("loanTypeCode", cmd.loanTypeCode().trim());
-        }
-    }
-
-    private static void attachStatuses(ListApplicationsQueryCommand cmd, StringBuilder sql, HashMap<String, Object> params) {
-        if (cmd.statuses() != null && !cmd.statuses().isEmpty()) {
-            sql.append(" AND s.name = ANY(:statuses) ");
-            params.put("statuses", cmd.statuses().stream().map(Enum::name).toArray(String[]::new));
-        } else {
-            sql.append(" AND s.name = ANY(:statuses) ");
-            params.put("statuses", new String[]{"PENDING_REVIEW", "REJECTED", "MANUAL_REVIEW"});
-        }
-    }
-
-    private static void attachEmail(ListApplicationsQueryCommand cmd, StringBuilder sql, HashMap<String, Object> params) {
-        if (cmd.email() != null && !cmd.email().isBlank()) {
-            sql.append(" AND a.email ILIKE :email ");
-            params.put("email", "%" + cmd.email().trim() + "%");
-        }
-    }
-
-    private static void attachDocument(ListApplicationsQueryCommand cmd, StringBuilder sql, HashMap<String, Object> params) {
-        if (cmd.document() != null && !cmd.document().isBlank()) {
-            sql.append(" AND a.identity_document ILIKE :document ");
-            params.put("document", "%" + cmd.document().trim() + "%");
-        }
     }
 }

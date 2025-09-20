@@ -4,6 +4,7 @@ import com.crediya.loan.model.common.exceptions.AuthenticationException;
 import com.crediya.loan.model.common.exceptions.DomainException;
 import com.crediya.loan.model.common.exceptions.ErrorCode;
 import com.crediya.loan.model.common.gateways.AuthContextPort;
+import com.crediya.loan.model.common.ownership.Authorities;
 import com.crediya.loan.model.common.ownership.OwnableCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,27 +54,34 @@ class OwnershipValidatorServiceTest {
 
     @Test
     void bypassesWhenBypassAuthorityIsPermission() {
-        when(port.currentUser()).thenReturn(Mono.just(user("x@y.com", List.of(), List.of("loan:override"))));
+        when(port.currentUser()).thenReturn(Mono.just(user("x@y.com", List.of(), List.of("ROLE_ADMINISTRADOR"))));
 
-        var mono = service.assertOwner(ownableCommand("other@y.com"), Set.of("loan:override"));
+        var mono = service.assertOwner(ownableCommand("other@y.com"), Set.of(Authorities.ROLE_ADMINISTRADOR));
 
         StepVerifier.create(mono).verifyComplete();
     }
 
     @Test
     void bypassesWhenBypassAuthorityIsRoleWithoutPrefix() {
-        when(port.currentUser()).thenReturn(Mono.just(user("x@y.com", List.of("ADMIN"), List.of())));
-        var mono = service.assertOwner(ownableCommand("other@y.com"), Set.of("ADMIN"));
+        when(port.currentUser()).thenReturn(Mono.just(user("x@y.com", List.of("ROLE_ADMINISTRADOR"), List.of())));
+        var mono = service.assertOwner(ownableCommand("other@y.com"), Set.of(Authorities.ROLE_ADMINISTRADOR));
 
         StepVerifier.create(mono).verifyComplete();
     }
 
     @Test
     void failWhenEmailsDoNotMatchAndNoBypass() {
-        when(port.currentUser()).thenReturn(Mono.just(user("x@y.com", List.of("ADMIN"), List.of())));
-        var mono = service.assertOwner(ownableCommand("other@y.com"), Set.of("ROLE_ADMIN"));
+        when(port.currentUser()).thenReturn(Mono.just(user("x@y.com", List.of("ROLE_OTHER"), List.of())));
+        var mono = service.assertOwner(ownableCommand("other@y.com"), Set.of(Authorities.ROLE_ADMINISTRADOR));
 
-        StepVerifier.create(mono).verifyComplete();
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(err -> {
+                    assertThat(err).isInstanceOf(AuthenticationException.class);
+                    var de = (DomainException) err;
+                    assertThat(de.getCode()).isEqualTo(ErrorCode.EMAIL_MISMATCH);
+                    assertThat(de).hasMessageContaining("The provided identity does not match the authenticated user's token");
+                })
+                .verify();
     }
 
     @Test

@@ -13,9 +13,9 @@ import java.util.UUID;
 @Component
 public class ApplicationSummaryMapper {
     public ApplicationSummary toSummary(Row row) {
-        var amount = row.get("amount", java.math.BigDecimal.class);
+        var amount = row.get("amount", BigDecimal.class);
         var term   = row.get("term", Integer.class);
-        var rate   = row.get("termInMonths", java.math.BigDecimal.class); // anual %
+        var rate   = row.get("termInMonths", BigDecimal.class); // anual %
 
         return new ApplicationSummary(
                 Objects.requireNonNull(row.get("id", UUID.class)).toString(),

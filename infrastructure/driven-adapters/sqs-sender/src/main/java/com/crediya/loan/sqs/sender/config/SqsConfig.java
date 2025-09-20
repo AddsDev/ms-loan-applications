@@ -1,8 +1,10 @@
 package com.crediya.loan.sqs.sender.config;
 
+import com.crediya.loan.model.capacity.gateways.LoanCapacityPublisherPort;
 import com.crediya.loan.model.common.gateways.TraceLoggerPort;
 import com.crediya.loan.model.decision.gateways.DecisionPublisherPort;
 import com.crediya.loan.sqs.sender.adapter.SqsDecisionPublisherAdapter;
+import com.crediya.loan.sqs.sender.adapter.SqsLoanCapacityPublisherAdapter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +19,21 @@ public class SqsConfig {
             ObjectMapper mapper,
             @Qualifier("entryPointLogger")
             TraceLoggerPort logger,
-            SQSSenderProperties queueUrl
+            SQSSenderProperties properties
     ) {
-        return new SqsDecisionPublisherAdapter(sqs, mapper, logger, queueUrl);
+        var props = SqsSenderProps.defaults(properties.requestQueueUrl());
+        return SqsDecisionPublisherAdapter.of(sqs, mapper, logger, props);
+    }
+
+    @Bean
+    public LoanCapacityPublisherPort loanCapacityPublisherPort(
+            SqsAsyncClient sqs,
+            ObjectMapper mapper,
+            @Qualifier("entryPointLogger")
+            TraceLoggerPort logger,
+            SQSSenderProperties properties
+    ) {
+        var props = SqsSenderProps.defaults(properties.automaticQueueUrl());
+        return SqsLoanCapacityPublisherAdapter.of(sqs, mapper, logger, props);
     }
 }

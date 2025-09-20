@@ -9,6 +9,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface DecisionMapper {
 
@@ -22,6 +25,14 @@ public interface DecisionMapper {
         return email == null ? null : new Email(email);
     }
 
+
+    @Named("toDateString")
+    default String toDateString(OffsetDateTime date) {
+        return date.format(DateTimeFormatter.ISO_DATE_TIME);
+    }
+
     @Mapping(target = "status", source = "decision")
+    @Mapping(target = "id", source = "loanId")
+    @Mapping(target = "updatedAt", source = "createdAt", qualifiedByName = "toDateString")
     DecisionEventResponse toResponse(DecisionEvent command);
 }
