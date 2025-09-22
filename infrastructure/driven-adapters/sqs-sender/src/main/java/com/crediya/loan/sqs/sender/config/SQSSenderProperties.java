@@ -8,5 +8,6 @@ public record SQSSenderProperties(
      String requestQueueUrl,
      String automaticQueueUrl,
      String resultQueueUrl,
+     String reportQueueUrl,
      String endpoint){
 }

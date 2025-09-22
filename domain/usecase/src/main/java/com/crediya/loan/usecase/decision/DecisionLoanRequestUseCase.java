@@ -9,6 +9,7 @@ import com.crediya.loan.model.decision.DecisionEvent;
 import com.crediya.loan.model.decision.gateways.DecisionPublisherPort;
 import com.crediya.loan.model.decision.parameterobjects.DecisionEventCommand;
 import com.crediya.loan.model.loan.gateways.LoanRepository;
+import com.crediya.loan.model.report.gateways.ReportPublisherPort;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -18,13 +19,14 @@ import java.util.Set;
 public class DecisionLoanRequestUseCase {
     private final LoanRepository loanRepository;
     private final DecisionPublisherPort decisionPublisher;
+    private final ReportPublisherPort reportPublisher;
     private final TraceLoggerPort logger;
     private final OwnershipValidatorService ownershipValidator;
 
 
     public Mono<DecisionEvent> execute(DecisionEventCommand command) {
         return Mono.defer(() -> {
-            logger.trace("usecase=DecisionLoanRequest start loanId={} decision={}",
+            logger.trace("useCase=DecisionLoanRequest start loanId={} decision={}",
                     command.loanId(), command.decision());
             return ownershipValidator.assertOwner(command, Set.of(Authorities.ROLE_ADMINISTRADOR))
                     .then(Mono.fromSupplier(() -> DecisionEvent.register(command)))
@@ -32,23 +34,20 @@ public class DecisionLoanRequestUseCase {
                             loanRepository.changeStatusIfPending(event)
                                     .switchIfEmpty(Mono.error(new ValidationException(ErrorCode.BUSINESS_RULE_VIOLATION,
                                             "Only PENDING can be changed to APPROVED or REJECTED.")))
-                                    .flatMap( response ->
+                                    .flatMap(response ->
                                             decisionPublisher.publish(response)
                                                     .then()
                                                     .onErrorResume(e -> Mono.empty())
                                     )
                                     .thenReturn(event)
                     )
-                    .doOnSuccess(de -> {
-                        if (de != null) {
-                            logger.trace("usecase=DecisionLoanRequest success loanId={} decision={}",
-                                    de.loanId(), de.decision());
-                        } else {
-                            logger.warn("usecase=DecisionLoanRequest success but repository returned empty");
-                        }
-                    })
-                    .doOnSubscribe(subscription -> logger.trace("tx[DecisionLoanRequestUseCase] start"))
-                    .doOnError(e -> logger.error("tx[DecisionLoanRequestUseCase] fail loanId={}", command.loanId(), e));
+                    .flatMap(decision ->
+                            loanRepository.findForReportEvent(decision.loanId()).flatMap(
+                                    response -> reportPublisher.publish(response).thenReturn(decision)
+                            ))
+                    .doOnSuccess(de -> logger.warn("useCase=DecisionLoanRequest success loanId={} decision={}", de.loanId(), de.decision().name()))
+                    .doOnSubscribe(subscription -> logger.trace("useCase=DecisionLoanRequestUseCase start"))
+                    .doOnError(e -> logger.error("useCase=DecisionLoanRequestUseCase fail loanId={}", command.loanId(), e));
         });
     }
 }
