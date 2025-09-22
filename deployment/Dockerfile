@@ -30,6 +30,10 @@ ENV SPRING_PROFILES_ACTIVE=docker \
     DB_PASSWORD=postgres_docker \
     AUTH_JWKS_URI=http://auth-service:8080 \
     AUTH_ISSUER_URI=http://auth-service:8080 \
+    SQS_REQUEST_QUEUE=https://sqs.us-east-1.amazonaws.com/00000000/laon_request_queue \
+    SQS_AUTOMATIC_QUEUE=https://sqs.us-east-1.amazonaws.com/00000000/loan_automatic_queue \
+    SQS_REPORT_QUEUE=https://sqs.us-east-1.amazonaws.com/00000000/loan_reports_queue \
+    SQS_RESULT_AUTOMATIC_QUEUE=https://sqs.us-east-1.amazonaws.com/00000000/result_automatic_queue \
     CORS_ALLOWED_ORIGINS=*
 
 # Usuario no root

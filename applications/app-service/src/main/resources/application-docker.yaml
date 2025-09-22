@@ -33,3 +33,18 @@ adapters:
     connect_timeout: ${EMAIL_VALIDATOR_CONNECT_TIMEOUT:10000}
     read_timeout: ${EMAIL_VALIDATOR_READ_TIMEOUT:10000}
     default_retry_attempts: ${EMAIL_VALIDATOR_DEFAULT_RETRY_ATTEMPTS:1}
+
+adapter:
+  sqs:
+    region: "us-east-1"
+    requestQueueUrl: "${SQS_REQUEST_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/laon_request_queue}"
+    automaticQueueUrl: "${SQS_AUTOMATIC_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/loan_automatic_queue}"
+    reportQueueUrl: "${SQS_REPORT_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/loan_reports_queue}"
+entrypoint:
+  sqs:
+    region: "us-east-1"
+    queueUrl: "${SQS_RESULT_AUTOMATIC_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/result_automatic_queue}"
+    waitTimeSeconds: 20
+    maxNumberOfMessages: 10
+    visibilityTimeoutSeconds: 30
+    numberOfThreads: 1
