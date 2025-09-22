@@ -59,8 +59,6 @@ public class ApplyForLoanUseCase {
                                 )
                                 .flatMap(loanRepository::save)
                                 .doOnSubscribe(s -> logger.trace("ApplyForLoan start, doc={} email={}", maskDoc(command.document().value()), command.email()))
-                                .doOnSuccess(app -> logger.info("tx[ApplyForLoanUseCase] success id={} status={}", app.id(), app.status().name()))
-                                .doOnError(e -> logger.error("tx[ApplyForLoanUseCase] fail", e))
                 ));
     }
 

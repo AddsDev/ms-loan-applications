@@ -73,7 +73,8 @@ public class LoanHandler {
         String sort = serverRequest.queryParam("sort").orElse("createdAt,desc");
 
         var q = new ListApplicationsQueryCommand(page, size, sort, statuses, serverRequest.queryParam("email").orElse(null), serverRequest.queryParam("document").orElse(null), serverRequest.queryParam("loanType").orElse(null));
-        return listApplicationUseCase.execute(q).map(loanMapper::toResponse).flatMap(body -> ServerResponse.ok().bodyValue(body)).doOnError(e -> logger.error("Error listing for advisor", e));
+        return listApplicationUseCase.execute(q).map(loanMapper::toResponse).flatMap(body -> ServerResponse.ok().bodyValue(body))
+                .doOnError(e -> logger.error("Error listing for advisor", e));
     }
 
     private int parseInt(String raw) {

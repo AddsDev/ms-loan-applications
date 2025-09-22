@@ -11,6 +11,7 @@ import com.crediya.loan.model.loan.LoanApplication;
 import com.crediya.loan.model.loan.gateways.LoanRepository;
 import com.crediya.loan.model.loan.parameterobjects.ListApplicationsQueryCommand;
 import com.crediya.loan.model.loan.valueobjects.SortSpec;
+import com.crediya.loan.model.report.ReportEvent;
 import com.crediya.loan.r2dbc.common.DatabaseErrorMapper;
 import com.crediya.loan.r2dbc.entity.ApplicationEntity;
 import com.crediya.loan.r2dbc.helper.ReactiveAdapterOperations;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -69,7 +71,9 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
                 .map(entityMapper::toDomain)
                 .doOnSuccess(d -> logger.info("repo=Application save ok id={}", d.id()))
                 .doOnError(e -> logger.error("repo=Application save fail id={}", domain.id(), e))
-                .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application already exists")));
+                .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application already exists")))
+                .doOnSuccess(app -> logger.info("tx[ApplicationReactiveRepositoryAdapter] success id={} status={}", app.id(), app.status().name()))
+                .doOnError(e -> logger.error("tx[ApplicationReactiveRepositoryAdapter] fail", e));
     }
 
     @Override
@@ -78,14 +82,25 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
         return repository.findById(UUID.fromString(decisionEvent.loanId()))
                 .switchIfEmpty(Mono.error(new DomainException(ErrorCode.PERSISTENCE_ERROR, "Application not found")))
                 .map(entityMapper::toDomain)
-                .flatMap(app -> app.status() == ApplicationStatus.PENDING ? Mono.just(app) : Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application status is not PENDING")))
+                .flatMap(app -> List.of(ApplicationStatus.PENDING, ApplicationStatus.REVIEW_MANUAL).contains(app.status()) ? Mono.just(app) : Mono.error(new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application status is not PENDING")))
                 .map(app -> entityMapper.toEntity(app, decisionEvent))
                 .flatMap(entity -> {
                     logger.trace("repo=Application update status id={}", entity.getApplicationId());
-                    return tx.transactional(() -> repository.save(entity));
+                    return tx.transactional(() -> repository.save(entity))
+                            .doOnSuccess(de -> logger.warn("repository=ApplicationReactiveRepositoryAdapter success loanId={} decision={}", decisionEvent.loanId(), decisionEvent.decision().name()))
+                            .doOnSubscribe(subscription -> logger.trace("tx[ApplicationReactiveRepositoryAdapter] start"))
+                            .doOnError(e -> logger.error("tx[ApplicationReactiveRepositoryAdapter] fail loanId={}", decisionEvent.loanId(), e));
                 })
                 .map(entityMapper::toDomainDecision)
                 .onErrorMap(e -> DatabaseErrorMapper.mapUniqueViolation(e, () -> new DomainException(ErrorCode.BUSINESS_RULE_VIOLATION, "Application not exists")));
+    }
+
+    @Override
+    public Mono<ReportEvent> findForReportEvent(String loanId) {
+        logger.trace("Update application for report id={}", loanId);
+        return repository.findById(UUID.fromString(loanId))
+                .switchIfEmpty(Mono.error(new DomainException(ErrorCode.PERSISTENCE_ERROR, "Application not found")))
+                .map(e -> ReportEvent.register(e.getAmount(), e.getApplicationId().toString(), e.getUpdatedAt().toString()));
     }
 
     @Override

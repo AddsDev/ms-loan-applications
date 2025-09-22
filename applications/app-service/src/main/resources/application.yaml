@@ -49,12 +49,13 @@ cors:
 adapter:
   sqs:
     region: "us-east-1"
-    requestQueueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/laon_request_queue"
-    automaticQueueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/loan_automatic_queue"
+    requestQueueUrl: "${SQS_REQUEST_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/laon_request_queue}"
+    automaticQueueUrl: "${SQS_AUTOMATIC_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/loan_automatic_queue}"
+    reportQueueUrl: "${SQS_REPORT_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/loan_reports_queue}"
 entrypoint:
   sqs:
     region: "us-east-1"
-    queueUrl: "https://sqs.us-east-1.amazonaws.com/155974034244/result_automatic_queue"
+    queueUrl: "${SQS_RESULT_AUTOMATIC_QUEUE:https://sqs.us-east-1.amazonaws.com/0000000000/result_automatic_queue}"
     waitTimeSeconds: 20
     maxNumberOfMessages: 10
     visibilityTimeoutSeconds: 30
